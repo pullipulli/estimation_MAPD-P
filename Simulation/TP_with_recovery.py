@@ -313,7 +313,7 @@ class TokenPassingRecovery(object):
             if agent_name in self.token['agents_to_tasks'] and (pos['x'], pos['y']) == tuple(
                     self.token['agents_to_tasks'][agent_name]['goal']) \
                     and len(self.token['agents'][agent_name]) == 1 and self.token['agents_to_tasks'][agent_name][
-                'task_name'] != 'safe_idle':
+                 'task_name'] != 'safe_idle':
                 if self.token['agents_to_tasks'][agent_name]['task_name'] != 'test':
                     self.token['completed_tasks'] = self.token['completed_tasks'] + 1
                     self.token['completed_tasks_times'][
@@ -322,7 +322,7 @@ class TokenPassingRecovery(object):
             if agent_name in self.token['agents_to_tasks'] and (pos['x'], pos['y']) == tuple(
                     self.token['agents_to_tasks'][agent_name]['goal']) \
                     and len(self.token['agents'][agent_name]) == 1 and self.token['agents_to_tasks'][agent_name][
-                'task_name'] == 'safe_idle':
+                 'task_name'] == 'safe_idle':
                 self.token['agents_to_tasks'].pop(agent_name)
         # Collect new tasks and assign them, if possible
         for t in self.simulation.get_new_tasks():
