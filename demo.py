@@ -13,11 +13,6 @@ import RootPath
 from Simulation.TP_with_recovery import TokenPassingRecovery
 from Simulation.simulation_new_recovery import SimulationNewRecovery
 
-
-def probability_task(task_distribution, start, goal):
-    return task_distribution[tuple(start), tuple(goal)] / len(task_distribution)
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-m1', help='Use TP-m1 (Modify Path1)',
@@ -58,7 +53,6 @@ if __name__ == '__main__':
     dimensions = param['map']['dimensions']
     dimensions = (dimensions[0], dimensions[1], 10000)  # third dimension is time (10 000 timesteps)
     task_distribution = numpy.zeros(dimensions)
-    learned_task_distibution = dict()
     tasks = []
     total = 0
     time = 0
@@ -79,20 +73,11 @@ if __name__ == '__main__':
                 tasks.append(
                     {'start_time': time, 'start': start, 'goal': goal,
                      'task_name': 'task' + str(total)})
-                if learned_task_distibution.get((tuple(start), tuple(goal))) is None:
-                    learned_task_distibution[tuple(start), tuple(goal)] = 1
-                else:
-                    learned_task_distibution[tuple(start), tuple(goal)] += 1
             else:
                 probability = 0.0
                 task_distribution[start[0], start[1], time] = probability
         time += 1
 
-    print("PROBABILITA' CHE APPAIA UNA CERTA TASK IN UN CERTO ISTANTE DI TEMPO")
-
-    for task in tasks:
-        print("TASK: ", task)
-        print(probability_task(learned_task_distibution, task['start'], task['goal']))
     numpy.set_printoptions(threshold=sys.maxsize)
 
     dimensions = param['map']['dimensions']
@@ -113,6 +98,8 @@ if __name__ == '__main__':
     initialTime = datetime.datetime.now().timestamp()
     while tp.get_completed_tasks() != len(tasks):
         simulation.time_forward(tp)
+        print("TASK DISTRIBUTION AT TIME ", simulation.get_time())
+        print(simulation.get_task_distribution())
     final = datetime.datetime.now().timestamp()
     runtime = final - initialTime
     agents_cost = simulation.agents_cost

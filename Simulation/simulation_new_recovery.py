@@ -13,6 +13,7 @@ class SimulationNewRecovery(object):
         self.actual_paths = {}
         self.algo_time = 0
         self.initialize_simulation()
+        self.learned_task_distribution = dict()
 
     def initialize_simulation(self):
         for agent in self.agents:
@@ -53,6 +54,14 @@ class SimulationNewRecovery(object):
                 {'t': self.time, 'x': current_agent_pos['x'], 'y': current_agent_pos['y']})
             self.agents_cost += 1
 
+        for task in self.get_new_tasks():
+            start = task['start']
+            goal = task['goal']
+            if self.learned_task_distribution.get((tuple(start), tuple(goal))) is None:
+                self.learned_task_distribution[tuple(start), tuple(goal)] = 1
+            else:
+                self.learned_task_distribution[tuple(start), tuple(goal)] += 1
+
     def get_time(self):
         return self.time
 
@@ -68,3 +77,11 @@ class SimulationNewRecovery(object):
             if t['start_time'] == self.time:
                 new.append(t)
         return new
+
+    def get_task_distribution(self):
+        freq_task_distribution = dict()
+
+        for task in self.learned_task_distribution:
+            freq_task_distribution[task] = self.learned_task_distribution[task] / len(self.learned_task_distribution)
+
+        return freq_task_distribution
