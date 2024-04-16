@@ -4,8 +4,6 @@ author: Ashwin Bose (@atb033)
 author: Giacomo Lodigiani (@Lodz97)
 """
 import sys
-
-sys.path.insert(0, '../')
 import argparse
 import yaml
 from math import fabs
@@ -13,6 +11,7 @@ from itertools import combinations
 from copy import deepcopy
 
 from Simulation.CBS.a_star import AStar
+sys.path.insert(0, '../')
 
 
 class Location(object):
