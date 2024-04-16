@@ -131,3 +131,7 @@ dmypy.json
 .idea
 
 *.yaml_tmp
+
+*.gif
+
+output.yaml

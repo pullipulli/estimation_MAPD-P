@@ -12,6 +12,7 @@ import yaml
 import RootPath
 from Simulation.TP_with_recovery import TokenPassingRecovery
 from Simulation.simulation_new_recovery import SimulationNewRecovery
+from Utils.visualize import Animation
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -30,12 +31,14 @@ if __name__ == '__main__':
     parser.add_argument('-task_frequency',
                         help='Probability that a certain node will be assigned to a certain task at a certain instant of time',
                         default=0.2, type=float)
+    parser.add_argument('-slow_factor', help='Slow factor of visualization', default=1, type=int)
+    parser.add_argument('-gif', help='If it should a gif of the visualization', default=False, type=bool)
     args = parser.parse_args()
 
     number_of_tasks = args.tasks
     tasks_frequency = args.task_frequency
 
-    print("Number of tasks:", number_of_tasks)
+    print("\nNumber of tasks:", number_of_tasks)
     print("Task frequency", tasks_frequency)
 
     with open(os.path.join(RootPath.get_root(), 'config.json'), 'r') as json_file:
@@ -85,6 +88,9 @@ if __name__ == '__main__':
     non_task_endpoints = param['map']['non_task_endpoints']
     agents = param['agents']
     param['tasks'] = tasks
+
+    with open(args.param + "_tmp", 'w') as param_file:
+        yaml.safe_dump(param, param_file)
 
     # Simulate
     simulation = SimulationNewRecovery(tasks, agents, task_distribution)
@@ -147,4 +153,21 @@ if __name__ == '__main__':
     print("Average service time:", avg_service_time, ". Standard deviation: ", ". Agents cost: ", agents_cost,
           ". Runtime cost:", runtime, ". Makespan:", simulation.time)
 
-    # TODO insert moving agents visualization
+    args.map = os.path.join(RootPath.get_root(),
+                            os.path.join(config['input_path'], config['input_name'] + "_tmp", ))
+    args.schedule = os.path.join(RootPath.get_root(), 'output.yaml')
+
+    with open(args.map) as map_file:
+        map = yaml.load(map_file, Loader=yaml.FullLoader)
+
+    with open(args.schedule) as states_file:
+        schedule = yaml.load(states_file, Loader=yaml.FullLoader)
+
+    animation = Animation(map, schedule, args.slow_factor)
+
+    if args.gif:
+        print("Saving the animation... (It will take a while...)")
+        animation.save(RootPath.get_root() + '/' + config['visualization_output_file'])
+    else:
+        print("Showing the animation.")
+        animation.show()
