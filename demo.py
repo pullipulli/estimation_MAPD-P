@@ -33,6 +33,8 @@ if __name__ == '__main__':
                         default=0.2, type=float)
     parser.add_argument('-slow_factor', help='Slow factor of visualization', default=1, type=int)
     parser.add_argument('-gif', help='If it should a gif of the visualization', default=False, type=bool)
+    parser.add_argument('-learn_task_distribution', help='True if the algorithm should learn the task distribution',
+                        default=False, type=bool)
     args = parser.parse_args()
 
     number_of_tasks = args.tasks
@@ -93,7 +95,7 @@ if __name__ == '__main__':
         yaml.safe_dump(param, param_file)
 
     # Simulate
-    simulation = SimulationNewRecovery(tasks, agents, task_distribution)
+    simulation = SimulationNewRecovery(tasks, agents, task_distribution, args.learn_task_distribution)
     tp = TokenPassingRecovery(agents, dimensions, obstacles, non_task_endpoints, simulation,
                               param['map']['start_locations'],
                               a_star_max_iter=args.a_star_max_iter, path_1_modified=args.m1,
@@ -104,8 +106,7 @@ if __name__ == '__main__':
     initialTime = datetime.datetime.now().timestamp()
     while tp.get_completed_tasks() != len(tasks):
         simulation.time_forward(tp)
-        print("TASK DISTRIBUTION AT TIME ", simulation.get_time())
-        print(simulation.get_task_distribution())
+
     final = datetime.datetime.now().timestamp()
     runtime = final - initialTime
     agents_cost = simulation.agents_cost

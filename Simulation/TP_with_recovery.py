@@ -9,8 +9,9 @@ from Simulation.CBS.cbs import CBS, Environment
 
 
 class TokenPassingRecovery(object):
-    def __init__(self, agents, dimensions, obstacles, non_task_endpoints, simulation, starts, a_star_max_iter=800000000,
-                 path_1_modified=False, path_2_modified=False, preemption_radius=0, preemption_duration=0):
+    def __init__(self, agents, dimensions, obstacles, non_task_endpoints, simulation, starts,
+                 a_star_max_iter=800000000, path_1_modified=False, path_2_modified=False,
+                 preemption_radius=0, preemption_duration=0):
         self.agents = agents
         self.starts = starts
         self.dimensions = dimensions
@@ -18,6 +19,7 @@ class TokenPassingRecovery(object):
         self.path_2_modified = path_2_modified
         self.preemption_radius = preemption_radius
         self.preemption_duration = preemption_duration
+        self.learn_task_distribution = simulation.learn_task_distribution
         preemption_zones = {}
         self.preempted_locations = {}
         self.preemption_status = {}
@@ -30,7 +32,6 @@ class TokenPassingRecovery(object):
         self.preemption_zones = preemption_zones
         for agent_name in self.agents:
             self.preempted_locations[agent_name['name']] = []
-        self.task_distribution = numpy.array(simulation.task_distribution)
 
         self.obstacles = set(obstacles)
         self.non_task_endpoints = non_task_endpoints
@@ -175,8 +176,12 @@ class TokenPassingRecovery(object):
         if best_task is not None and tuple(agent_pos) in self.starts and best_task in self.preempted_locations[
              tuple(agent_pos)]:
             return best_task
-        for i in range(self.task_distribution.shape[1]):
-            for j in range(self.task_distribution.shape[2]):
+
+        num_starts = len(self.dimensions[0])
+        num_goals = len(self.dimensions[1])
+
+        for i in range(num_starts):
+            for j in range(num_goals):
                 task = [i, j]
                 if task in self.starts and self.check_reachable_task_endpoint(task, agent_pos):
                     x = 0
@@ -184,9 +189,13 @@ class TokenPassingRecovery(object):
                     preemption_zone = self.get_preemption_zone(task)
                     for t in range(self.simulation.time + 1,
                                    min(self.simulation.time + int(distance + 1) + self.preemption_duration,
-                                       self.task_distribution.shape[3])):
-                        for location in preemption_zone:
-                            x = x + self.task_distribution[0, location[0], location[1], t]
+                                       self.dimensions[3])):
+                        if self.learn_task_distribution:
+                            for location in preemption_zone:
+                                x = x + self.simulation.get_task_distribution()[tuple(location[0]), tuple(location[1])]
+                        else:
+                            for location in preemption_zone:
+                                x = x + self.simulation.get_task_distribution()[0, location[0], location[1], t]
                     tmp = x / (distance + self.preemption_duration)
                     if dist == -1:
                         dist = tmp
@@ -260,8 +269,6 @@ class TokenPassingRecovery(object):
                         agent_pos) not in zone:
                     zone.append(tuple(agent_pos))
                 self.preempted_locations[agent_name] = zone
-                if len(zone) > 1:
-                    True  # self.print(agent_name + " preempted zone " + str(zone))
                 self.preemption_status[agent_name] = self.preemption_duration
                 self.token['path_ends'].add(tuple([last_step['x'], last_step['y']]))
                 self.token['agents_to_tasks'][agent_name] = {'task_name': "test", 'start': agent_pos,
