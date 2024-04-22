@@ -1,9 +1,12 @@
 import random
 import time
+from ObserverPattern import Observable
 
 
-class SimulationNewRecovery(object):
-    def __init__(self, tasks, agents, task_distributions=None, learn_task_distribution=False):
+class SimulationNewRecovery(Observable):
+    def __init__(self, tasks, agents, task_distributions=None, learn_task_distribution=False, update_time=30):
+        super().__init__()
+        self.update_time = update_time
         self.tasks = tasks
         self.task_distribution = task_distributions
         self.agents = agents
@@ -37,7 +40,8 @@ class SimulationNewRecovery(object):
                 self.actual_paths[agent['name']].append(
                     {'t': self.time, 'x': current_agent_pos['x'], 'y': current_agent_pos['y']})
         # Check moving agents doesn't collide with others
-        agents_to_move = [x for x in agents_to_move if x['name'] not in self.agents_moved]  # update the list of agent to move
+        agents_to_move = [x for x in agents_to_move if
+                          x['name'] not in self.agents_moved]  # update the list of agent to move
 
         for agent in agents_to_move:
             if len(algorithm.get_token()['agents'][agent['name']]) > 1:
@@ -62,6 +66,13 @@ class SimulationNewRecovery(object):
             else:
                 self.learned_task_distribution[tuple(start)] += 1
 
+        if not self.learn_task_distribution:
+            self.notify_observers()
+        elif (self.time % self.update_time) == 0:
+            # TODO check also if there are more tasks (maybe create a max_task_time attribute)
+            #  and then remove the observer
+            self.notify_observers()
+
     def get_time(self):
         return self.time
 
@@ -83,7 +94,8 @@ class SimulationNewRecovery(object):
             freq_task_distribution = dict()
 
             for task in self.learned_task_distribution:
-                freq_task_distribution[task] = self.learned_task_distribution[task] / len(self.learned_task_distribution)
+                freq_task_distribution[task] = self.learned_task_distribution[task] / len(
+                    self.learned_task_distribution)
 
             return freq_task_distribution
 

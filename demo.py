@@ -29,12 +29,16 @@ if __name__ == '__main__':
     parser.add_argument('-tasks', help='Number of tasks',
                         default=80, type=int)
     parser.add_argument('-task_frequency',
-                        help='Probability that a certain node will be assigned to a certain task at a certain instant of time',
+                        help='Probability that a certain node will be assigned to a certain task '
+                             'at a certain time-step',
                         default=0.2, type=float)
     parser.add_argument('-slow_factor', help='Slow factor of visualization', default=1, type=int)
     parser.add_argument('-gif', help='If it should a gif of the visualization', default=False, type=bool)
     parser.add_argument('-learn_task_distribution', help='True if the algorithm should learn the task distribution',
                         default=False, type=bool)
+    parser.add_argument('-update_td_every_t', help='A integer >= 0 that changes how many time-steps should pass before '
+                                                   'the simulation notify the task distribution changes to their '
+                                                   'observers', default=15, type=int)
     args = parser.parse_args()
 
     number_of_tasks = args.tasks
@@ -95,7 +99,8 @@ if __name__ == '__main__':
         yaml.safe_dump(param, param_file)
 
     # Simulate
-    simulation = SimulationNewRecovery(tasks, agents, task_distributions, args.learn_task_distribution)
+    simulation = SimulationNewRecovery(tasks, agents, task_distributions, args.learn_task_distribution,
+                                       args.update_td_every_t)
     tp = TokenPassingRecovery(agents, dimensions, obstacles, non_task_endpoints, simulation,
                               param['map']['start_locations'],
                               a_star_max_iter=args.a_star_max_iter, path_1_modified=args.m1,
@@ -105,8 +110,6 @@ if __name__ == '__main__':
 
     initialTime = datetime.datetime.now().timestamp()
     while tp.get_completed_tasks() != len(tasks):
-        print("Task distribution al tempo", simulation.get_time())
-        print(simulation.get_task_distribution())
         simulation.time_forward(tp)
 
     final = datetime.datetime.now().timestamp()

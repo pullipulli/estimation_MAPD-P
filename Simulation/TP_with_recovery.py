@@ -4,9 +4,10 @@ from collections import defaultdict
 from math import fabs
 
 from Simulation.CBS.cbs import CBS, Environment
+from ObserverPattern import Observer
 
 
-class TokenPassingRecovery(object):
+class TokenPassingRecovery(Observer):
     def __init__(self, agents, dimensions, obstacles, non_task_endpoints, simulation, starts,
                  a_star_max_iter=800000000, path_1_modified=False, path_2_modified=False,
                  preemption_radius=0, preemption_duration=0):
@@ -40,6 +41,8 @@ class TokenPassingRecovery(object):
         self.token = {}
         self.simulation = simulation
         self.a_star_max_iter = a_star_max_iter
+        self.simulation.add_observer(self)
+        self.task_distribution = dict(simulation.get_task_distribution())
         self.init_token()
 
     def init_token(self):
@@ -189,7 +192,7 @@ class TokenPassingRecovery(object):
                                    min(self.simulation.time + int(distance + 1) + self.preemption_duration,
                                        self.dimensions[3])):
                         for location in preemption_zone:
-                            probability = self.simulation.get_task_distribution().get(tuple(location), 0)
+                            probability = self.task_distribution.get(tuple(location), 0)
                             x = x + probability
                     tmp = x / (distance + self.preemption_duration)
                     if dist == -1:
@@ -418,6 +421,12 @@ class TokenPassingRecovery(object):
                                 self.token['agents'][agent_name].append([el['x'], el['y']])
             elif preemption_duration == 0:
                 self.go_to_closest_non_task_endpoint(agent_name, agent_pos, all_idle_agents, self.path_2_modified)
+        print("Task distribution al tempo", self.simulation.get_time())
+        print(self.task_distribution)
+
+    def update(self, observable, *args, **kwargs):
+        self.task_distribution = dict(self.simulation.get_task_distribution())
 
     def print(self, string):
         print("TIME " + str(self.simulation.time) + ": " + string)
+
