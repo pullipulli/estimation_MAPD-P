@@ -66,6 +66,7 @@ if __name__ == '__main__':
     tasks = []
     total = 0
     time = 0
+    last_task_time = max_time
     while total < number_of_tasks:
         task_distribution = dict()
         tasks_now = numpy.random.poisson(tasks_frequency)
@@ -84,6 +85,7 @@ if __name__ == '__main__':
                 tasks.append(
                     {'start_time': time, 'start': start, 'goal': goal,
                      'task_name': 'task' + str(total)})
+                last_task_time = time
         task_distributions[time] = task_distribution
         time += 1
 
@@ -100,7 +102,7 @@ if __name__ == '__main__':
 
     # Simulate
     simulation = SimulationNewRecovery(tasks, agents, task_distributions, args.learn_task_distribution,
-                                       args.update_td_every_t)
+                                       args.update_td_every_t, last_task_time)
     tp = TokenPassingRecovery(agents, dimensions, obstacles, non_task_endpoints, simulation,
                               param['map']['start_locations'],
                               a_star_max_iter=args.a_star_max_iter, path_1_modified=args.m1,

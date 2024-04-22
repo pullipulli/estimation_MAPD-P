@@ -421,11 +421,11 @@ class TokenPassingRecovery(Observer):
                                 self.token['agents'][agent_name].append([el['x'], el['y']])
             elif preemption_duration == 0:
                 self.go_to_closest_non_task_endpoint(agent_name, agent_pos, all_idle_agents, self.path_2_modified)
-        print("Task distribution al tempo", self.simulation.get_time())
-        print(self.task_distribution)
 
     def update(self, observable, *args, **kwargs):
         self.task_distribution = dict(self.simulation.get_task_distribution())
+        print("Task distribution al tempo", self.simulation.get_time())
+        print(self.task_distribution)
 
     def print(self, string):
         print("TIME " + str(self.simulation.time) + ": " + string)

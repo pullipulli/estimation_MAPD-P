@@ -4,8 +4,10 @@ from ObserverPattern import Observable
 
 
 class SimulationNewRecovery(Observable):
-    def __init__(self, tasks, agents, task_distributions=None, learn_task_distribution=False, update_time=30):
+    def __init__(self, tasks, agents, task_distributions=None, learn_task_distribution=False,
+                 update_time=30, last_task_time=10000):
         super().__init__()
+        self.last_task_time = last_task_time
         self.update_time = update_time
         self.tasks = tasks
         self.task_distribution = task_distributions
@@ -68,9 +70,9 @@ class SimulationNewRecovery(Observable):
 
         if not self.learn_task_distribution:
             self.notify_observers()
-        elif (self.time % self.update_time) == 0:
-            # TODO check also if there are more tasks (maybe create a max_task_time attribute)
-            #  and then remove the observer
+        elif self.time > self.last_task_time:
+            self.remove_observer(algorithm)
+        elif (self.time % self.update_time) == 0 and len(self.observers) != 0:
             self.notify_observers()
 
     def get_time(self):
