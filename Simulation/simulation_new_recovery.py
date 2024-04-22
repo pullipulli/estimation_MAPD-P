@@ -27,7 +27,6 @@ class SimulationNewRecovery(Observable):
 
     def time_forward(self, algorithm):
         self.time = self.time + 1
-        # print('Time:', self.time)
         start_time = time.time()
         algorithm.time_forward()
         self.algo_time += time.time() - start_time
