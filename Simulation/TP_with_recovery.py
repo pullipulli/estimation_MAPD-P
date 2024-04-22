@@ -3,8 +3,6 @@ import random
 from collections import defaultdict
 from math import fabs
 
-import numpy
-
 from Simulation.CBS.cbs import CBS, Environment
 
 
@@ -190,12 +188,9 @@ class TokenPassingRecovery(object):
                     for t in range(self.simulation.time + 1,
                                    min(self.simulation.time + int(distance + 1) + self.preemption_duration,
                                        self.dimensions[3])):
-                        if self.learn_task_distribution:
-                            for location in preemption_zone:
-                                x = x + self.simulation.get_task_distribution()[tuple(location[0]), tuple(location[1])]
-                        else:
-                            for location in preemption_zone:
-                                x = x + self.simulation.get_task_distribution()[0, location[0], location[1], t]
+                        for location in preemption_zone:
+                            probability = self.simulation.get_task_distribution().get(tuple(location), 0)
+                            x = x + probability
                     tmp = x / (distance + self.preemption_duration)
                     if dist == -1:
                         dist = tmp

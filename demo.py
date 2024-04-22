@@ -40,7 +40,7 @@ if __name__ == '__main__':
     number_of_tasks = args.tasks
     tasks_frequency = args.task_frequency
 
-    print("\nNumber of tasks:", number_of_tasks)
+    print("Number of tasks:", number_of_tasks)
     print("Task frequency", tasks_frequency)
 
     with open(os.path.join(RootPath.get_root(), 'config.json'), 'r') as json_file:
@@ -56,12 +56,14 @@ if __name__ == '__main__':
             print(exc)
 
     dimensions = param['map']['dimensions']
-    dimensions = (dimensions[0], dimensions[1], 10000)  # third dimension is time (10 000 timesteps)
-    task_distribution = numpy.zeros(dimensions)
+    max_time = 10000
+    dimensions = (dimensions[0], dimensions[1], max_time)
+    task_distributions = [dict() for i in range(max_time)]
     tasks = []
     total = 0
     time = 0
     while total < number_of_tasks:
+        task_distribution = dict()
         tasks_now = numpy.random.poisson(tasks_frequency)
         locations = []
         if tasks_now > number_of_tasks - total:
@@ -72,15 +74,13 @@ if __name__ == '__main__':
         for start in param['map']['start_locations']:
             if start in locations:
                 probability = 1.0
-                task_distribution[start[0], start[1], time] = probability
+                task_distribution[tuple(start)] = probability
                 total += 1
                 goal = random.choice(param['map']['goal_locations'])
                 tasks.append(
                     {'start_time': time, 'start': start, 'goal': goal,
                      'task_name': 'task' + str(total)})
-            else:
-                probability = 0.0
-                task_distribution[start[0], start[1], time] = probability
+        task_distributions[time] = task_distribution
         time += 1
 
     numpy.set_printoptions(threshold=sys.maxsize)
@@ -95,7 +95,7 @@ if __name__ == '__main__':
         yaml.safe_dump(param, param_file)
 
     # Simulate
-    simulation = SimulationNewRecovery(tasks, agents, task_distribution, args.learn_task_distribution)
+    simulation = SimulationNewRecovery(tasks, agents, task_distributions, args.learn_task_distribution)
     tp = TokenPassingRecovery(agents, dimensions, obstacles, non_task_endpoints, simulation,
                               param['map']['start_locations'],
                               a_star_max_iter=args.a_star_max_iter, path_1_modified=args.m1,
@@ -105,6 +105,8 @@ if __name__ == '__main__':
 
     initialTime = datetime.datetime.now().timestamp()
     while tp.get_completed_tasks() != len(tasks):
+        print("Task distribution al tempo", simulation.get_time())
+        print(simulation.get_task_distribution())
         simulation.time_forward(tp)
 
     final = datetime.datetime.now().timestamp()

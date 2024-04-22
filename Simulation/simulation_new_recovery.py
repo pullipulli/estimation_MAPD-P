@@ -3,9 +3,9 @@ import time
 
 
 class SimulationNewRecovery(object):
-    def __init__(self, tasks, agents, task_distribution=None, learn_task_distribution=False):
+    def __init__(self, tasks, agents, task_distributions=None, learn_task_distribution=False):
         self.tasks = tasks
-        self.task_distribution = task_distribution
+        self.task_distribution = task_distributions
         self.agents = agents
         self.learn_task_distribution = learn_task_distribution
         self.learned_task_distribution = dict()
@@ -57,11 +57,10 @@ class SimulationNewRecovery(object):
 
         for task in self.get_new_tasks():
             start = task['start']
-            goal = task['goal']
-            if self.learned_task_distribution.get((tuple(start), tuple(goal))) is None:
-                self.learned_task_distribution[tuple(start), tuple(goal)] = 1
+            if self.learned_task_distribution.get(tuple(start)) is None:
+                self.learned_task_distribution[tuple(start)] = 1
             else:
-                self.learned_task_distribution[tuple(start), tuple(goal)] += 1
+                self.learned_task_distribution[tuple(start)] += 1
 
     def get_time(self):
         return self.time
@@ -87,4 +86,5 @@ class SimulationNewRecovery(object):
                 freq_task_distribution[task] = self.learned_task_distribution[task] / len(self.learned_task_distribution)
 
             return freq_task_distribution
-        return self.task_distribution
+
+        return self.task_distribution[self.time]
