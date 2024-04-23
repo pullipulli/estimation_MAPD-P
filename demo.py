@@ -103,7 +103,7 @@ if __name__ == '__main__':
     # Simulate
     simulation = SimulationNewRecovery(tasks, agents, task_distributions, args.learn_task_distribution,
                                        args.update_td_every_t, last_task_time)
-    tp = TokenPassingRecovery(agents, dimensions, obstacles, non_task_endpoints, simulation,
+    tp = TokenPassingRecovery(agents, dimensions, max_time, obstacles, non_task_endpoints, simulation,
                               param['map']['start_locations'],
                               a_star_max_iter=args.a_star_max_iter, path_1_modified=args.m1,
                               path_2_modified=args.m2,

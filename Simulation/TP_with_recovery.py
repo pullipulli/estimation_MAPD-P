@@ -4,16 +4,17 @@ from collections import defaultdict
 from math import fabs
 
 from Simulation.CBS.cbs import CBS, Environment
-from ObserverPattern import Observer
+from Utils.observer_pattern import Observer, Observable
 
 
 class TokenPassingRecovery(Observer):
-    def __init__(self, agents, dimensions, obstacles, non_task_endpoints, simulation, starts,
+    def __init__(self, agents, dimensions, max_time, obstacles, non_task_endpoints, simulation, starts,
                  a_star_max_iter=800000000, path_1_modified=False, path_2_modified=False,
                  preemption_radius=0, preemption_duration=0):
         self.agents = agents
         self.starts = starts
         self.dimensions = dimensions
+        self.max_time = max_time
         self.path_1_modified = path_1_modified
         self.path_2_modified = path_2_modified
         self.preemption_radius = preemption_radius
@@ -41,8 +42,9 @@ class TokenPassingRecovery(Observer):
         self.token = {}
         self.simulation = simulation
         self.a_star_max_iter = a_star_max_iter
-        self.simulation.add_observer(self)
-        self.task_distribution = dict(simulation.get_task_distribution())
+        if self.learn_task_distribution:
+            self.simulation.add_observer(self)
+            self.learned_task_distribution = dict(simulation.get_learned_task_distribution())
         self.init_token()
 
     def init_token(self):
@@ -171,44 +173,54 @@ class TokenPassingRecovery(Observer):
                 locations.append(location)
         return list(locations)
 
-    def get_best_idle_location(self, agent_pos, best_task=None):
-        dist = -1
-        res = [-1, -1]
+    def get_best_idle_location(self, agent_pos, best_task=None) -> [int, int]:
+        best_idle_distance = -1
+        best_idle = [-1, -1]
         if best_task is not None and tuple(agent_pos) in self.starts and best_task in self.preempted_locations[
              tuple(agent_pos)]:
             return best_task
 
-        num_starts = len(self.dimensions[0])
-        num_goals = len(self.dimensions[1])
+        num_x = self.dimensions[0]
+        num_y = self.dimensions[1]
+        task_distr = dict()
+        if self.learn_task_distribution:
+            task_distr = self.learned_task_distribution
 
-        for i in range(num_starts):
-            for j in range(num_goals):
-                task = [i, j]
-                if task in self.starts and self.check_reachable_task_endpoint(task, agent_pos):
-                    x = 0
-                    distance = self.admissible_heuristic([i, j], agent_pos) + 1
-                    preemption_zone = self.get_preemption_zone(task)
-                    for t in range(self.simulation.time + 1,
-                                   min(self.simulation.time + int(distance + 1) + self.preemption_duration,
-                                       self.dimensions[3])):
+        for x in range(num_x):
+            for y in range(num_y):
+                start = [x, y]
+                if start in self.starts and self.check_reachable_task_endpoint(start, agent_pos):
+                    examined_loc_attractiveness = 0
+                    distance = self.admissible_heuristic(start, agent_pos) + 1
+                    preemption_zone = self.get_preemption_zone(start)
+
+                    for t in range(self.simulation.get_time() + 1,
+                                   min(self.simulation.get_time() + int(distance + 1) + self.preemption_duration,
+                                       self.max_time)):
                         for location in preemption_zone:
-                            probability = self.task_distribution.get(tuple(location), 0)
-                            x = x + probability
-                    tmp = x / (distance + self.preemption_duration)
-                    if dist == -1:
-                        dist = tmp
-                        res = [i, j]
+                            if not self.learn_task_distribution:
+                                task_distr = self.simulation.get_fixed_task_distribution_at_t(t)
+
+                            examined_loc_attractiveness += task_distr.get(tuple(location), 0)
+                    examined_distance = examined_loc_attractiveness / (distance + self.preemption_duration)
+
+
+                    if best_idle_distance == -1:
+                        best_idle_distance = examined_distance
+                        best_idle = start
                     else:
-                        if tmp > dist:
-                            dist = tmp
-                            res = [i, j]
-        if res == [-1, -1]:
+                        if examined_distance > best_idle_distance:
+                            best_idle_distance = examined_distance
+                            best_idle = start
+
+        if best_idle == [-1, -1]:
             return best_task
 
-        if best_task is not None and 1 / (self.admissible_heuristic(agent_pos, best_task) + 1 + self.preemption_duration) >= dist:
+        if best_task is not None and 1 / (
+                self.admissible_heuristic(agent_pos, best_task) + 1 + self.preemption_duration) >= best_idle_distance:
             return best_task
 
-        return res
+        return best_idle
 
     def update_ends(self, agent_pos):
         if tuple(agent_pos) in self.token['path_ends']:
@@ -318,7 +330,7 @@ class TokenPassingRecovery(Observer):
             if agent_name in self.token['agents_to_tasks'] and (pos['x'], pos['y']) == tuple(
                     self.token['agents_to_tasks'][agent_name]['goal']) \
                     and len(self.token['agents'][agent_name]) == 1 and self.token['agents_to_tasks'][agent_name][
-                 'task_name'] != 'safe_idle':
+                'task_name'] != 'safe_idle':
                 if self.token['agents_to_tasks'][agent_name]['task_name'] != 'test':
                     self.token['completed_tasks'] = self.token['completed_tasks'] + 1
                     self.token['completed_tasks_times'][
@@ -327,7 +339,7 @@ class TokenPassingRecovery(Observer):
             if agent_name in self.token['agents_to_tasks'] and (pos['x'], pos['y']) == tuple(
                     self.token['agents_to_tasks'][agent_name]['goal']) \
                     and len(self.token['agents'][agent_name]) == 1 and self.token['agents_to_tasks'][agent_name][
-                 'task_name'] == 'safe_idle':
+                'task_name'] == 'safe_idle':
                 self.token['agents_to_tasks'].pop(agent_name)
         # Collect new tasks and assign them, if possible
         for t in self.simulation.get_new_tasks():
@@ -340,7 +352,7 @@ class TokenPassingRecovery(Observer):
             all_idle_agents.pop(agent_name)
             agent_pos = idle_agents.pop(agent_name)[0]
             if agent_name in self.preempted_locations.keys() and tuple(agent_pos) in self.preempted_locations[
-                 agent_name]:
+                agent_name]:
                 preemption_duration = self.preemption_status[agent_name]
                 if preemption_duration == 0:
                     # Released preempted locations for agent_name
@@ -422,10 +434,9 @@ class TokenPassingRecovery(Observer):
             elif preemption_duration == 0:
                 self.go_to_closest_non_task_endpoint(agent_name, agent_pos, all_idle_agents, self.path_2_modified)
 
-    def update(self, observable, *args, **kwargs):
-        self.task_distribution = dict(self.simulation.get_task_distribution())
-        self.print(str(self.task_distribution))
+    def update(self, observable: Observable, *args, **kwargs):
+        self.learned_task_distribution = dict(self.simulation.get_learned_task_distribution())
+        self.print(str(self.learned_task_distribution))
 
     def print(self, string):
         print("TIME " + str(self.simulation.time) + ": " + string)
-

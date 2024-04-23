@@ -1,6 +1,6 @@
 import random
 import time
-from ObserverPattern import Observable
+from Utils.observer_pattern import Observable
 
 
 class SimulationNewRecovery(Observable):
@@ -67,12 +67,11 @@ class SimulationNewRecovery(Observable):
             else:
                 self.learned_task_distribution[tuple(start)] += 1
 
-        if not self.learn_task_distribution:
-            self.notify_observers()
-        elif self.time > self.last_task_time:
-            self.remove_observer(algorithm)
-        elif (self.time % self.update_time) == 0 and len(self.observers) != 0:
-            self.notify_observers()
+        if self.learn_task_distribution:
+            if self.time > self.last_task_time:
+                self.remove_observer(algorithm)
+            elif (self.time % self.update_time) == 0 and len(self.observers) != 0:
+                self.notify_observers()
 
     def get_time(self):
         return self.time
@@ -90,14 +89,14 @@ class SimulationNewRecovery(Observable):
                 new.append(t)
         return new
 
-    def get_task_distribution(self):
-        if self.task_distribution is None or self.learn_task_distribution:
-            freq_task_distribution = dict()
+    def get_learned_task_distribution(self):
+        freq_task_distribution = dict()
 
-            for task in self.learned_task_distribution:
-                freq_task_distribution[task] = self.learned_task_distribution[task] / len(
-                    self.learned_task_distribution)
+        for task in self.learned_task_distribution:
+            freq_task_distribution[task] = self.learned_task_distribution[task] / len(
+                self.learned_task_distribution)
 
-            return freq_task_distribution
+        return freq_task_distribution
 
-        return self.task_distribution[self.time]
+    def get_fixed_task_distribution_at_t(self, t):
+        return dict(self.task_distribution[t])
