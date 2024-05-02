@@ -2,14 +2,16 @@ import math
 import random
 from collections import defaultdict
 from math import fabs
+from typing import List
 
 from Simulation.CBS.cbs import CBS, Environment
 from Utils.observer_pattern import Observer, Observable
+from Utils.type_checking import Agent, Location
 
 
 class TokenPassingRecovery(Observer):
-    def __init__(self, agents, dimensions, max_time, obstacles, non_task_endpoints, simulation, starts,
-                 a_star_max_iter=800000000, path_1_modified=False, path_2_modified=False,
+    def __init__(self, agents: List[Agent], dimensions, max_time, obstacles, non_task_endpoints, simulation,
+                 starts: List[Location], a_star_max_iter=800000000, path_1_modified=False, path_2_modified=False,
                  preemption_radius=0, preemption_duration=0):
         self.agents = agents
         self.starts = starts
@@ -352,7 +354,7 @@ class TokenPassingRecovery(Observer):
             all_idle_agents.pop(agent_name)
             agent_pos = idle_agents.pop(agent_name)[0]
             if agent_name in self.preempted_locations.keys() and tuple(agent_pos) in self.preempted_locations[
-                agent_name]:
+                 agent_name]:
                 preemption_duration = self.preemption_status[agent_name]
                 if preemption_duration == 0:
                     # Released preempted locations for agent_name

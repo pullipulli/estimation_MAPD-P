@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import matplotlib
 from matplotlib.patches import Circle, Rectangle, RegularPolygon
 import matplotlib.pyplot as plt
@@ -58,7 +57,7 @@ class Animation:
         for t, i in zip(map["tasks"], range(len(map["tasks"]))):
             x_g, y_g = t['goal'][0], t['goal'][1]
             self.tasks[t['task_name']].append(
-                RegularPolygon((x_g, y_g - 0.05), 3, 0.2, facecolor=task_colors[i], edgecolor='black', alpha=0))
+                RegularPolygon((x_g, y_g - 0.05), 3, radius=0.2, facecolor=task_colors[i], edgecolor='black', alpha=0))
             self.patches.append(self.tasks[t['task_name']][1])
 
         # Create agents:

@@ -1,10 +1,13 @@
 import random
 import time
+
+from typing import List
 from Utils.observer_pattern import Observable
+from Utils.type_checking import TaskDistribution, Task, Agent
 
 
 class SimulationNewRecovery(Observable):
-    def __init__(self, tasks, agents, task_distributions=None, learn_task_distribution=False,
+    def __init__(self, tasks: List[Task], agents: List[Agent], task_distributions: List[TaskDistribution] = None, learn_task_distribution=False,
                  update_time=30, last_task_time=10000):
         super().__init__()
         self.last_task_time = last_task_time
@@ -40,7 +43,7 @@ class SimulationNewRecovery(Observable):
                 self.agents_moved.add(agent['name'])
                 self.actual_paths[agent['name']].append(
                     {'t': self.time, 'x': current_agent_pos['x'], 'y': current_agent_pos['y']})
-        # Check moving agents doesn't collide with others
+
         agents_to_move = [x for x in agents_to_move if
                           x['name'] not in self.agents_moved]  # update the list of agent to move
 
@@ -73,23 +76,23 @@ class SimulationNewRecovery(Observable):
             elif (self.time % self.update_time) == 0 and len(self.observers) != 0:
                 self.notify_observers()
 
-    def get_time(self):
+    def get_time(self) -> int:
         return self.time
 
-    def get_algo_time(self):
+    def get_algo_time(self) -> float:
         return self.algo_time
 
     def get_actual_paths(self):
         return self.actual_paths
 
-    def get_new_tasks(self):
+    def get_new_tasks(self) -> List[Task]:
         new = []
         for t in self.tasks:
             if t['start_time'] == self.time:
                 new.append(t)
         return new
 
-    def get_learned_task_distribution(self):
+    def get_learned_task_distribution(self) -> TaskDistribution:
         freq_task_distribution = dict()
 
         for task in self.learned_task_distribution:
@@ -98,5 +101,5 @@ class SimulationNewRecovery(Observable):
 
         return freq_task_distribution
 
-    def get_fixed_task_distribution_at_t(self, t):
+    def get_fixed_task_distribution_at_t(self, t) -> TaskDistribution:
         return dict(self.task_distribution[t])
