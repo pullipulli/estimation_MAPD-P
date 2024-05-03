@@ -1,8 +1,9 @@
-from typing import Dict, TypeAlias, List, Literal, Any
+from typing import Literal
 
-Coordinate: TypeAlias = int
-Time: TypeAlias = int
-Location: TypeAlias = List[Coordinate]
-TaskDistribution = Dict[Location, float]
-Task: TypeAlias = Dict[Literal["start", "goal", "start_time", "task_name"], Any]
-Agent: TypeAlias = Dict[Literal["name", "start"], Any]
+type Coordinate = int
+type Time = int
+type Name = str
+type Location = list[Coordinate]
+type TaskDistribution = dict[Location, int]
+type Task = dict[Literal["start", "goal", "start_time", "task_name"], Location | Time | Name]
+type Agent = dict[Literal["name", "start"], str | Location]

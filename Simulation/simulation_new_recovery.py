@@ -1,13 +1,13 @@
 import random
 import time
 
-from typing import List
 from Utils.observer_pattern import Observable
-from Utils.type_checking import TaskDistribution, Task, Agent
+from Utils.type_checking import TaskDistribution, Task, Agent, Time
 
 
 class SimulationNewRecovery(Observable):
-    def __init__(self, tasks: List[Task], agents: List[Agent], task_distributions: List[TaskDistribution] = None, learn_task_distribution=False,
+
+    def __init__(self, tasks: list[Task], agents: list[Agent], task_distributions: list[TaskDistribution] = None, learn_task_distribution=False,
                  update_time=30, last_task_time=10000):
         super().__init__()
         self.last_task_time = last_task_time
@@ -76,7 +76,7 @@ class SimulationNewRecovery(Observable):
             elif (self.time % self.update_time) == 0 and len(self.observers) != 0:
                 self.notify_observers()
 
-    def get_time(self) -> int:
+    def get_time(self) -> Time:
         return self.time
 
     def get_algo_time(self) -> float:
@@ -85,7 +85,7 @@ class SimulationNewRecovery(Observable):
     def get_actual_paths(self):
         return self.actual_paths
 
-    def get_new_tasks(self) -> List[Task]:
+    def get_new_tasks(self) -> list[Task]:
         new = []
         for t in self.tasks:
             if t['start_time'] == self.time:
