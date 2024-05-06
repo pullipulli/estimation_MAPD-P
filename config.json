@@ -1,5 +1,6 @@
 {
     "input_path": "Environments",
     "input_name": "input_warehouse_big_random.yaml",
-    "visualization_output_file": "output.gif"
+    "visualization_output_file": "output.gif",
+    "stats_output_file": "stats_with_learning.yaml"
 }
