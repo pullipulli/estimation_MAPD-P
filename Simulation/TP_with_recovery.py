@@ -437,7 +437,6 @@ class TokenPassingRecovery(Observer):
 
     def update(self, observable: Observable, *args, **kwargs):
         self.learned_task_distribution = dict(self.simulation.get_learned_task_distribution())
-        self.print(str(self.learned_task_distribution))
 
     def print(self, string):
         print("TIME " + str(self.simulation.time) + ": " + string)
