@@ -8,6 +8,8 @@ from collections import defaultdict
 from statistics import *
 
 import numpy
+import numpy as np
+import pandas as pd
 import yaml
 
 import RootPath
@@ -16,12 +18,11 @@ from Simulation.simulation_new_recovery import SimulationNewRecovery
 from Utils.visualize import Animation
 
 
-def memorize_run_stats(stats, actual_runtime: float, running_simulation: SimulationNewRecovery, token_passing: TokenPassingRecovery):
-    serv_times = stats["serv_times"]
-    runtimes = stats["runtimes"]
-    makespans = stats["makespans"]
-    costs = stats["costs"]
-
+def memorize_run_stats(old_stats, actual_runtime: float, running_simulation: SimulationNewRecovery, token_passing: TokenPassingRecovery):
+    serv_times = old_stats["serv_times"]
+    runtimes = old_stats["runtimes"]
+    costs = old_stats["costs"]
+    makespans = old_stats["makespans"]
     cost = 0
     for path in running_simulation.actual_paths.values():
         cost = cost + len(path)
@@ -31,18 +32,14 @@ def memorize_run_stats(stats, actual_runtime: float, running_simulation: Simulat
 
     serv_times.append(serv_time)
     runtimes.append(actual_runtime)
-    makespans.append(running_simulation.time)
     costs.append(cost)
+    makespans.append(simulation.get_time())
 
     return {"costs": costs, "serv_times": serv_times, "runtimes": runtimes, "makespans": makespans}
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-m1', help='Use TP-m1 (Modify Path1)',
-                        default=False, type=bool)
-    parser.add_argument('-m2', help='Use TP-m2 (Modify Path2)',
-                        default=False, type=bool)
     parser.add_argument('-preemption_distance', help='Maximum distance to be part of the preemption zone',
                         default=3, type=int)
     parser.add_argument('-preemption_duration', help='Preemption duration',
@@ -57,8 +54,6 @@ if __name__ == '__main__':
                         default=0.2, type=float)
     parser.add_argument('-slow_factor', help='Slow factor of visualization', default=1, type=int)
     parser.add_argument('-gif', help='If it should a gif of the visualization', default=False, type=bool)
-    parser.add_argument('-learn_task_distribution', help='True if the algorithm should learn the task distribution',
-                        default=False, type=bool)
     parser.add_argument('-update_td_every_t', help='A integer >= 0 that changes how many time-steps should pass before '
                                                    'the simulation notify the task distribution changes to their '
                                                    'observers', default=15, type=int)
@@ -66,9 +61,6 @@ if __name__ == '__main__':
 
     number_of_tasks = args.tasks
     tasks_frequency = args.task_frequency
-
-    print("Number of tasks:", number_of_tasks)
-    print("Task frequency", tasks_frequency)
 
     with open(os.path.join(RootPath.get_root(), 'config.json'), 'r') as json_file:
         config = json.load(json_file)
@@ -120,16 +112,14 @@ if __name__ == '__main__':
     agents = param['agents']
     param['tasks'] = tasks
 
-    with open(args.param + "_tmp", 'w') as param_file:
-        yaml.safe_dump(param, param_file)
+    print("Running Simulation with task distribution estimation...")
 
-    # Simulate
-    simulation = SimulationNewRecovery(tasks, agents, task_distributions, args.learn_task_distribution,
+    simulation = SimulationNewRecovery(tasks, agents, task_distributions, True,
                                        args.update_td_every_t, last_task_time)
     tp = TokenPassingRecovery(agents, dimensions, max_time, obstacles, non_task_endpoints, simulation,
                               param['map']['start_locations'],
-                              a_star_max_iter=args.a_star_max_iter, path_1_modified=args.m1,
-                              path_2_modified=args.m2,
+                              a_star_max_iter=args.a_star_max_iter, path_1_modified=True,
+                              path_2_modified=True,
                               preemption_radius=args.preemption_distance,
                               preemption_duration=args.preemption_duration)
 
@@ -146,29 +136,39 @@ if __name__ == '__main__':
 
         stats = memorize_run_stats(stats, runtime, simulation, tp)
 
-    print(stats)
+    print("Saving stats in stats_with_learning.csv...")
 
-    with open(config["stats_output_file"], 'w') as stats_file:
-        yaml.safe_dump(stats, stats_file)
+    dfStatsLearning = pd.DataFrame(stats, index=np.arange(0, simulation.get_time()))
+    dfStatsLearning.index.name = "time"
+    dfStatsLearning.to_csv("stats_with_learning.csv")
 
-    output = {'schedule': simulation.actual_paths, 'cost': stats["costs"][-1],
-              'completed_tasks_times': tp.get_completed_tasks_times(),
-              }
-    with open(args.output, 'w') as output_yaml:
-        yaml.safe_dump(output, output_yaml)
+    print("Running Simulation with fixed task distribution...")
 
-    for agent in simulation.actual_paths.keys():
-        for t in range(len(simulation.actual_paths[agent]) - 1):
-            for agent2 in simulation.actual_paths.keys():
-                if agent2 != agent:
-                    if simulation.actual_paths[agent][t] == simulation.actual_paths[agent2][t]:
-                        print("Path collision agents" + str(agent) + " " + str(agent2) + str(
-                            simulation.actual_paths[agent]) + str(
-                            simulation.actual_paths[agent2]) + "at time " + str(
-                            t))
-                    if simulation.actual_paths[agent][t] == simulation.actual_paths[agent2][t + 1] and \
-                            simulation.actual_paths[agent][t + 1] == simulation.actual_paths[agent2][t]:
-                        print("Switch collision " + str(agent) + " " + str(agent2) + str(
-                            simulation.actual_paths[agent]) + str(
-                            simulation.actual_paths[agent2]) + "at time " + str(
-                            t))
+    simulation = SimulationNewRecovery(tasks, agents, task_distributions, False,
+                                       args.update_td_every_t, last_task_time)
+    tp = TokenPassingRecovery(agents, dimensions, max_time, obstacles, non_task_endpoints, simulation,
+                              param['map']['start_locations'],
+                              a_star_max_iter=args.a_star_max_iter, path_1_modified=True,
+                              path_2_modified=True,
+                              preemption_radius=args.preemption_distance,
+                              preemption_duration=args.preemption_duration)
+
+    runtime = 0
+    stats = defaultdict(lambda: [])
+
+    while tp.get_completed_tasks() != len(tasks):
+        initialTime = datetime.datetime.now().timestamp()
+
+        simulation.time_forward(tp)
+
+        final = datetime.datetime.now().timestamp()
+        runtime = final - initialTime
+
+        stats = memorize_run_stats(stats, runtime, simulation, tp)
+
+    print("Saving stats in stats_without_learning.csv...")
+
+    dfStatsWithoutLearning = pd.DataFrame(stats, index=np.arange(0, simulation.get_time()))
+    dfStatsWithoutLearning.index.name = "time"
+    dfStatsWithoutLearning.to_csv("stats_without_learning.csv")
+
