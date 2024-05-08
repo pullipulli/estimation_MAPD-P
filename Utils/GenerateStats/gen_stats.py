@@ -34,7 +34,7 @@ def memorize_run_stats(old_stats, actual_runtime: float, running_simulation: Sim
     runtimes.append(actual_runtime)
     costs.append(cost)
 
-    return {"costs": costs, "serv_times": serv_times, "runtimes": runtimes}
+    return {"costs": costs, "serv_times": serv_times, "runtimes": runtimes, "number_of_tasks": len(simulation.tasks)}
 
 
 if __name__ == '__main__':
