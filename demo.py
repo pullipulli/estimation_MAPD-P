@@ -5,7 +5,6 @@ import os
 import random
 import sys
 from collections import defaultdict
-from statistics import *
 
 import numpy
 import yaml
@@ -14,27 +13,6 @@ import RootPath
 from Simulation.TP_with_recovery import TokenPassingRecovery
 from Simulation.simulation_new_recovery import SimulationNewRecovery
 from Utils.visualize import Animation
-
-
-def memorize_run_stats(stats, actual_runtime: float, running_simulation: SimulationNewRecovery, token_passing: TokenPassingRecovery):
-    serv_times = stats["serv_times"]
-    runtimes = stats["runtimes"]
-    makespans = stats["makespans"]
-    costs = stats["costs"]
-
-    cost = 0
-    for path in running_simulation.actual_paths.values():
-        cost = cost + len(path)
-    serv_time = 0
-    for task, end_time in token_passing.get_token()['completed_tasks_times'].items():
-        serv_time = (end_time - token_passing.get_token()['start_tasks_times'][task])
-
-    serv_times.append(serv_time)
-    runtimes.append(actual_runtime)
-    makespans.append(running_simulation.time)
-    costs.append(cost)
-
-    return {"costs": costs, "serv_times": serv_times, "runtimes": runtimes, "makespans": makespans}
 
 
 if __name__ == '__main__':
@@ -134,7 +112,6 @@ if __name__ == '__main__':
                               preemption_duration=args.preemption_duration)
 
     runtime = 0
-    stats = defaultdict(lambda: [])
 
     while tp.get_completed_tasks() != len(tasks):
         initialTime = datetime.datetime.now().timestamp()
@@ -144,14 +121,11 @@ if __name__ == '__main__':
         final = datetime.datetime.now().timestamp()
         runtime = final - initialTime
 
-        stats = memorize_run_stats(stats, runtime, simulation, tp)
+    cost = 0
+    for path in simulation.actual_paths.values():
+        cost = cost + len(path)
 
-    print(stats)
-
-    with open(config["stats_output_file"], 'w') as stats_file:
-        yaml.safe_dump(stats, stats_file)
-
-    output = {'schedule': simulation.actual_paths, 'cost': stats["costs"][-1],
+    output = {'schedule': simulation.actual_paths, 'cost': cost,
               'completed_tasks_times': tp.get_completed_tasks_times(),
               }
     with open(args.output, 'w') as output_yaml:

@@ -15,17 +15,17 @@ import yaml
 import RootPath
 from Simulation.TP_with_recovery import TokenPassingRecovery
 from Simulation.simulation_new_recovery import SimulationNewRecovery
-from Utils.visualize import Animation
 
 
 def memorize_run_stats(old_stats, actual_runtime: float, running_simulation: SimulationNewRecovery, token_passing: TokenPassingRecovery):
     serv_times = old_stats["serv_times"]
     runtimes = old_stats["runtimes"]
     costs = old_stats["costs"]
-    makespans = old_stats["makespans"]
+
     cost = 0
     for path in running_simulation.actual_paths.values():
         cost = cost + len(path)
+
     serv_time = 0
     for task, end_time in token_passing.get_token()['completed_tasks_times'].items():
         serv_time = (end_time - token_passing.get_token()['start_tasks_times'][task])
@@ -33,9 +33,8 @@ def memorize_run_stats(old_stats, actual_runtime: float, running_simulation: Sim
     serv_times.append(serv_time)
     runtimes.append(actual_runtime)
     costs.append(cost)
-    makespans.append(simulation.get_time())
 
-    return {"costs": costs, "serv_times": serv_times, "runtimes": runtimes, "makespans": makespans}
+    return {"costs": costs, "serv_times": serv_times, "runtimes": runtimes}
 
 
 if __name__ == '__main__':
@@ -132,7 +131,7 @@ if __name__ == '__main__':
         simulation.time_forward(tp)
 
         final = datetime.datetime.now().timestamp()
-        runtime = final - initialTime
+        runtime += final - initialTime
 
         stats = memorize_run_stats(stats, runtime, simulation, tp)
 
@@ -162,7 +161,7 @@ if __name__ == '__main__':
         simulation.time_forward(tp)
 
         final = datetime.datetime.now().timestamp()
-        runtime = final - initialTime
+        runtime += final - initialTime
 
         stats = memorize_run_stats(stats, runtime, simulation, tp)
 
