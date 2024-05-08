@@ -134,4 +134,6 @@ dmypy.json
 
 *.gif
 
+*.csv
+
 output.yaml
