@@ -17,7 +17,8 @@ from Simulation.TP_with_recovery import TokenPassingRecovery
 from Simulation.simulation_new_recovery import SimulationNewRecovery
 
 
-def memorize_run_stats(old_stats, actual_runtime: float, running_simulation: SimulationNewRecovery, token_passing: TokenPassingRecovery):
+def memorize_run_stats(old_stats, completion_times, actual_runtime: float, running_simulation: SimulationNewRecovery,
+                       token_passing: TokenPassingRecovery):
     if running_simulation.time == 1:
         return {"costs": [0], "serv_times": [0], "runtimes": [actual_runtime],
                 "number_of_tasks": len(simulation.tasks)}
@@ -30,15 +31,18 @@ def memorize_run_stats(old_stats, actual_runtime: float, running_simulation: Sim
         for path in running_simulation.actual_paths.values():
             cost = cost + len(path)
 
-        serv_time = 0
+        completion_time = 0
         for task, end_time in token_passing.get_token()['completed_tasks_times'].items():
-            serv_time = (end_time - token_passing.get_token()['start_tasks_times'][task])
+            # I take the last completion time in the completed tasks times
+            completion_time = (end_time - token_passing.get_token()['start_tasks_times'][task])
 
-        serv_times.append(serv_time)
+        completion_times.append(completion_time)
+        serv_times.append(mean(completion_times))
         runtimes.append(actual_runtime)
         costs.append(cost)
 
-        return {"costs": costs, "serv_times": serv_times, "runtimes": runtimes, "number_of_tasks": len(simulation.tasks)}
+        return {"costs": costs, "serv_times": serv_times, "runtimes": runtimes,
+                "number_of_tasks": len(simulation.tasks)}
 
 
 if __name__ == '__main__':
@@ -128,6 +132,7 @@ if __name__ == '__main__':
 
     runtime = 0
     stats = defaultdict(lambda: [])
+    completion_times = []
 
     while tp.get_completed_tasks() != len(tasks):
         initialTime = datetime.datetime.now().timestamp()
@@ -137,7 +142,7 @@ if __name__ == '__main__':
         final = datetime.datetime.now().timestamp()
         runtime += final - initialTime
 
-        stats = memorize_run_stats(stats, runtime, simulation, tp)
+        stats = memorize_run_stats(stats, completion_times, runtime, simulation, tp)
 
     print("Saving stats in stats_with_learning.csv...")
 
@@ -158,6 +163,7 @@ if __name__ == '__main__':
 
     runtime = 0
     stats = defaultdict(lambda: [])
+    completion_times = []
 
     while tp.get_completed_tasks() != len(tasks):
         initialTime = datetime.datetime.now().timestamp()
@@ -167,11 +173,10 @@ if __name__ == '__main__':
         final = datetime.datetime.now().timestamp()
         runtime += final - initialTime
 
-        stats = memorize_run_stats(stats, runtime, simulation, tp)
+        stats = memorize_run_stats(stats, completion_times, runtime, simulation, tp)
 
     print("Saving stats in stats_without_learning.csv...")
 
     dfStatsWithoutLearning = pd.DataFrame(stats, index=np.arange(0, simulation.get_time()))
     dfStatsWithoutLearning.index.name = "time"
     dfStatsWithoutLearning.to_csv("stats_without_learning.csv")
-
