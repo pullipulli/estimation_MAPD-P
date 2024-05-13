@@ -73,6 +73,8 @@ class SimulationNewRecovery(Observable):
         if self.learn_task_distribution:
             if self.time > self.last_task_time:
                 self.remove_observer(algorithm)
+            elif self.update_time == 0:
+                self.notify_observers()
             elif (self.time % self.update_time) == 0 and len(self.observers) != 0:
                 self.notify_observers()
 
