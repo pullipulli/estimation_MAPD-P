@@ -31,12 +31,15 @@ def memorize_run_stats(old_stats, completion_times, actual_runtime: float, runni
         for path in running_simulation.actual_paths.values():
             cost = cost + len(path)
 
-        completion_time = 0
-        for task, end_time in token_passing.get_completed_tasks_times().items():
-            # I take the last completion time in the completed tasks times
-            completion_time = (end_time - token_passing.get_start_tasks_times()[task])
+        completed_tasks_names = list(token_passing.get_completed_tasks_times().keys())
 
-        completion_times.append(completion_time)
+        if len(completed_tasks_names) != 0:
+            last_completed_task_time = token_passing.get_completed_tasks_times()[completed_tasks_names[-1]]
+            completion_time = last_completed_task_time - token_passing.get_start_tasks_times()[completed_tasks_names[-1]]
+            completion_times.append(completion_time)
+        else:
+            completion_times.append(0)
+
         serv_times.append(mean(completion_times))
         runtimes.append(actual_runtime)
         costs.append(cost)
