@@ -52,6 +52,7 @@ class TokenPassingRecovery(Observer):
         self.token['agents'] = {}
         self.token['tasks'] = {}
         self.token['start_tasks_times'] = {}
+        self.token['pick_up_tasks_times'] = {}
         self.token['completed_tasks_times'] = {}
         for t in self.simulation.get_new_tasks():
             self.token['tasks'][t['task_name']] = [t['start'], t['goal']]
@@ -248,6 +249,12 @@ class TokenPassingRecovery(Observer):
     def get_completed_tasks_times(self):
         return self.token['completed_tasks_times']
 
+    def get_pick_up_tasks_times(self):
+        return self.token['pick_up_tasks_times']
+
+    def get_start_tasks_times(self):
+        return self.token['start_tasks_times']
+
     def get_token(self):
         return self.token
 
@@ -342,6 +349,14 @@ class TokenPassingRecovery(Observer):
                     and len(self.token['agents'][agent_name]) == 1 and self.token['agents_to_tasks'][agent_name][
                 'task_name'] == 'safe_idle':
                 self.token['agents_to_tasks'].pop(agent_name)
+        # Check if agents are in their pick-up locations
+        for agent_name in self.token['agents']:
+            pos = self.simulation.actual_paths[agent_name][-1]
+            if agent_name in self.token['agents_to_tasks'] and (pos['x'], pos['y']) == tuple(
+                    self.token['agents_to_tasks'][agent_name]['start']):
+                task_name = self.token['agents_to_tasks'][agent_name]['task_name']
+                self.token['pick_up_tasks_times'][task_name] = self.simulation.get_time()
+
         # Collect new tasks and assign them, if possible
         for t in self.simulation.get_new_tasks():
             self.token['tasks'][t['task_name']] = [t['start'], t['goal']]

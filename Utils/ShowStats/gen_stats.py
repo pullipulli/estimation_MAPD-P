@@ -32,9 +32,9 @@ def memorize_run_stats(old_stats, completion_times, actual_runtime: float, runni
             cost = cost + len(path)
 
         completion_time = 0
-        for task, end_time in token_passing.get_token()['completed_tasks_times'].items():
+        for task, end_time in token_passing.get_completed_tasks_times().items():
             # I take the last completion time in the completed tasks times
-            completion_time = (end_time - token_passing.get_token()['start_tasks_times'][task])
+            completion_time = (end_time - token_passing.get_start_tasks_times()[task])
 
         completion_times.append(completion_time)
         serv_times.append(mean(completion_times))
