@@ -349,14 +349,6 @@ class TokenPassingRecovery(Observer):
                     and len(self.token['agents'][agent_name]) == 1 and self.token['agents_to_tasks'][agent_name][
                 'task_name'] == 'safe_idle':
                 self.token['agents_to_tasks'].pop(agent_name)
-        # Check if agents are in their pick-up locations
-        for agent_name in self.token['agents']:
-            pos = self.simulation.actual_paths[agent_name][-1]
-            if agent_name in self.token['agents_to_tasks'] and (pos['x'], pos['y']) == tuple(
-                    self.token['agents_to_tasks'][agent_name]['start']):
-                task_name = self.token['agents_to_tasks'][agent_name]['task_name']
-                self.token['pick_up_tasks_times'][task_name] = self.simulation.get_time()
-
         # Collect new tasks and assign them, if possible
         for t in self.simulation.get_new_tasks():
             self.token['tasks'][t['task_name']] = [t['start'], t['goal']]
@@ -440,6 +432,7 @@ class TokenPassingRecovery(Observer):
                                                                          'start': task[0],
                                                                          'goal': task[1],
                                                                          'predicted_cost': cost1 + cost2}
+                            self.token['pick_up_tasks_times'][closest_task_name] = self.simulation.get_time()
                             self.token['agents'][agent_name] = []
                             for el in path_to_task_start[agent_name]:
                                 self.token['agents'][agent_name].append([el['x'], el['y']])
