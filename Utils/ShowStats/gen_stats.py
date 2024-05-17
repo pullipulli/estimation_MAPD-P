@@ -17,11 +17,12 @@ from Simulation.TP_with_recovery import TokenPassingRecovery
 from Simulation.simulation_new_recovery import SimulationNewRecovery
 
 
-def memorize_run_stats(old_stats, start_to_goal_times, start_to_pickup_times, pickup_to_goal_times, actual_runtime: float, running_simulation: SimulationNewRecovery,
+def memorize_run_stats(old_stats, start_to_goal_times, start_to_pickup_times, pickup_to_goal_times,
+                       actual_runtime: float, running_simulation: SimulationNewRecovery,
                        token_passing: TokenPassingRecovery):
     if running_simulation.time == 1:
-        return {"costs": [0], "serv_times": [0], "start_to_pickup_times": [0], "pickup_to_goal_times": [0], "runtimes": [actual_runtime],
-                "number_of_tasks": len(simulation.tasks)}
+        return {"costs": [0], "serv_times": [0], "start_to_pickup_times": [0], "pickup_to_goal_times": [0],
+                "runtimes": [actual_runtime], "number_of_tasks": len(simulation.tasks)}
     else:
         pickup_to_goal_avgs = old_stats["pickup_to_goal_times"]
         start_to_pickup_avgs = old_stats["start_to_pickup_times"]
@@ -31,7 +32,7 @@ def memorize_run_stats(old_stats, start_to_goal_times, start_to_pickup_times, pi
 
         cost = 0
         for path in running_simulation.actual_paths.values():
-            cost += + len(path)
+            cost += len(path)
 
         completed_tasks_names = list(token_passing.get_completed_tasks_times().keys())
 
@@ -178,13 +179,25 @@ if __name__ == '__main__':
         final = datetime.datetime.now().timestamp()
         runtime += final - initialTime
 
-        stats = memorize_run_stats(stats, start_to_goal_times, start_to_pickup_times, pickup_to_goal_times, runtime, simulation, tp)
+        stats = memorize_run_stats(stats, start_to_goal_times, start_to_pickup_times, pickup_to_goal_times, runtime,
+                                   simulation, tp)
+
+    print("Confronto tra costi teorici e costi reali: ")
+    print("Costo stimato: ", sum(tp.get_estimated_task_costs().values()))
+    print("Costo reale: ", sum(tp.get_real_task_costs().values()))
+    print("Costo totale (compreso lo stare fermo):", stats["costs"][-1])
 
     print("Saving stats in stats_with_learning.csv...")
 
     dfStatsLearning = pd.DataFrame(stats, index=np.arange(0, simulation.get_time()))
     dfStatsLearning.index.name = "time"
     dfStatsLearning.to_csv("stats_with_learning.csv")
+
+    print("Saving estimated and real costs per task in costs_learning.csv...")
+
+    dfCostsLearning = pd.DataFrame({"estimated": tp.get_estimated_task_costs(), "real": tp.get_real_task_costs()})
+    dfCostsLearning.index.name = "task_name"
+    dfCostsLearning.to_csv("costs_learning.csv")
 
     print("Running Simulation with fixed task distribution...")
 
@@ -211,10 +224,22 @@ if __name__ == '__main__':
         final = datetime.datetime.now().timestamp()
         runtime += final - initialTime
 
-        stats = memorize_run_stats(stats, start_to_goal_times, start_to_pickup_times, pickup_to_goal_times, runtime, simulation, tp)
+        stats = memorize_run_stats(stats, start_to_goal_times, start_to_pickup_times, pickup_to_goal_times, runtime,
+                                   simulation, tp)
+
+    print("Confronto tra costi teorici e costi reali: ")
+    print("Costo stimato: ", sum(tp.get_estimated_task_costs().values()))
+    print("Costo reale: ", sum(tp.get_real_task_costs().values()))
+    print("Costo totale (compreso lo stare fermo):", stats["costs"][-1])
 
     print("Saving stats in stats_without_learning.csv...")
 
     dfStatsWithoutLearning = pd.DataFrame(stats, index=np.arange(0, simulation.get_time()))
     dfStatsWithoutLearning.index.name = "time"
     dfStatsWithoutLearning.to_csv("stats_without_learning.csv")
+
+    print("Saving estimated and real costs per task in costs.csv...")
+
+    dfCosts = pd.DataFrame({"estimated": tp.get_estimated_task_costs(), "real": tp.get_real_task_costs()})
+    dfCosts.index.name = "task_name"
+    dfCosts.to_csv("costs.csv")

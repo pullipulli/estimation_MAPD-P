@@ -38,17 +38,18 @@ class SimulationNewRecovery(Observable):
         random.shuffle(agents_to_move)
         for agent in agents_to_move:
             current_agent_pos = self.actual_paths[agent['name']][-1]
+
             if len(algorithm.get_token()['agents'][agent['name']]) == 1:
                 # agent moved form his actual position
                 self.agents_moved.add(agent['name'])
                 self.actual_paths[agent['name']].append(
                     {'t': self.time, 'x': current_agent_pos['x'], 'y': current_agent_pos['y']})
+            elif len(algorithm.get_token()['agents'][agent['name']]) > 1:
+                task_name = algorithm.get_task_name_from_agent(agent['name'])
 
-        agents_to_move = [x for x in agents_to_move if
-                          x['name'] not in self.agents_moved]  # update the list of agent to move
+                if task_name is not None and task_name != 'test' and task_name != 'safe_idle':
+                    algorithm.increment_real_task_cost(task_name)
 
-        for agent in agents_to_move:
-            if len(algorithm.get_token()['agents'][agent['name']]) > 1:
                 x_new = algorithm.get_token()['agents'][agent['name']][1][0]
                 y_new = algorithm.get_token()['agents'][agent['name']][1][1]
                 self.agents_moved.add(agent['name'])
@@ -56,12 +57,10 @@ class SimulationNewRecovery(Observable):
                                                                      agent['name']][1:]
                 self.actual_paths[agent['name']].append({'t': self.time, 'x': x_new, 'y': y_new})
                 self.agents_cost += 1
-            agents_to_move = [x for x in agents_to_move if x['name'] not in self.agents_moved]
-        for agent in agents_to_move:
-            current_agent_pos = self.actual_paths[agent['name']][-1]
-            self.actual_paths[agent['name']].append(
-                {'t': self.time, 'x': current_agent_pos['x'], 'y': current_agent_pos['y']})
-            self.agents_cost += 1
+            else:
+                self.actual_paths[agent['name']].append(
+                    {'t': self.time, 'x': current_agent_pos['x'], 'y': current_agent_pos['y']})
+                self.agents_cost += 1
 
         for task in self.get_new_tasks():
             start = task['start']
