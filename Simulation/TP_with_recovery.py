@@ -333,8 +333,10 @@ class TokenPassingRecovery(Observer):
                 return cell
 
     def deadlock_recovery(self, agent_name, agent_pos, all_idle_agents, r):
+        print("DEADLOCK ", agent_name)
         self.token['deadlock_count_per_agent'][agent_name] += 1
         if self.token['deadlock_count_per_agent'][agent_name] >= 5:
+            print("DEADLOCK RECOVERY ", agent_name)
             self.token['deadlock_count_per_agent'][agent_name] = 0
             random_close_cell = self.get_random_close_cell(agent_pos, r)
             moving_obstacles_agents = self.get_moving_obstacles_agents(self.token['agents'], 0)
@@ -353,7 +355,7 @@ class TokenPassingRecovery(Observer):
                 for el in path_to_non_task_endpoint[agent_name]:
                     self.token['agents'][agent_name].append([el['x'], el['y']])
             else:
-                print("Deadlock recovery failed")
+                print("Deadlock recovery failed ", agent_name)
 
     def time_forward(self):
         # Update completed tasks
@@ -432,6 +434,12 @@ class TokenPassingRecovery(Observer):
                     path_to_task_start = self.search(cbs)
                     if path_to_task_start:
                         cost1 = env.compute_solution_cost(path_to_task_start)
+
+                        env = Environment(self.dimensions, [agent], self.obstacles, a_star_max_iter=self.a_star_max_iter)
+                        cbs = CBS(env)
+                        estimated_path_to_start = self.search(cbs)
+                        estimated_cost1 = env.compute_solution_cost(estimated_path_to_start) - 1
+
                         # Use cost - 1 because idle cost is 1
                         moving_obstacles_agents = self.get_moving_obstacles_agents(self.token['agents'], cost1 - 1)
                         idle_obstacles_agents = self.get_idle_obstacles_agents(all_idle_agents.values(),
@@ -443,6 +451,12 @@ class TokenPassingRecovery(Observer):
                         path_to_task_goal = self.search(cbs)
                         if path_to_task_goal:
                             cost2 = env.compute_solution_cost(path_to_task_goal)
+                            env = Environment(self.dimensions, [agent], self.obstacles,
+                                              a_star_max_iter=self.a_star_max_iter)
+                            cbs = CBS(env)
+                            estimated_path_to_goal = self.search(cbs)
+                            estimated_cost2 = env.compute_solution_cost(estimated_path_to_goal) - 1
+
                             if agent_name not in self.token['agents_to_tasks']:
                                 self.token['tasks'].pop(closest_task_name)
                                 task = available_tasks.pop(closest_task_name)
@@ -457,7 +471,7 @@ class TokenPassingRecovery(Observer):
                                                                          'start': task[0],
                                                                          'goal': task[1],
                                                                          'predicted_cost': cost1 + cost2}
-                            self.token['estimated_cost_per_task'][closest_task_name] = (cost1 - 1) + (cost2 - 1)
+                            self.token['estimated_cost_per_task'][closest_task_name] = estimated_cost1 + estimated_cost2
                             self.token['pick_up_tasks_times'][closest_task_name] = self.simulation.get_time()
                             self.token['agents'][agent_name] = []
                             for el in path_to_task_start[agent_name]:
