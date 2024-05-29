@@ -174,7 +174,7 @@ if __name__ == '__main__':
     agents_to_delete = set(random.sample(range(len(agents)), 0))
     agents = [agent for agentIndex, agent in enumerate(agents) if agentIndex not in agents_to_delete]
 
-    print("CI SONO ", len(agents), "AGENTI")
+    print("There are", len(agents), "agents in the simulation.")
 
     print("Running Simulation with task distribution estimation...")
 
