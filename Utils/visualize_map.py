@@ -44,18 +44,30 @@ def showMap(map):
         patches.append(Circle((x, y), 0.4, facecolor='green', edgecolor='black'))
 
     for s in map["start_locations"]:
-        patches.append(
-            Rectangle((s[0] - 0.5, s[1] - 0.5), 1, 1, facecolor=Colors[1],
-                      edgecolor='black',
-                      alpha=0.5))
-        startText = ax.text(s[0], s[1], "S")
-        startText.set_horizontalalignment('center')
-        startText.set_verticalalignment('center')
-        artists.append(startText)
+        if s in map["goal_locations"]:
+            patches.append(
+                Rectangle((s[0] - 0.5, s[1] - 0.5), 1, 1, facecolor=Colors[0],
+                          edgecolor='black',
+                          alpha=0.5))
+            startGoalText = ax.text(s[0], s[1], "B")
+            startGoalText.set_horizontalalignment('center')
+            startGoalText.set_verticalalignment('center')
+            artists.append(startGoalText)
+
+            map["goal_locations"].remove(s)
+        else:
+            patches.append(
+                Rectangle((s[0] - 0.5, s[1] - 0.5), 1, 1, facecolor=Colors[1],
+                          edgecolor='black',
+                          alpha=0.5))
+            startText = ax.text(s[0], s[1], "S")
+            startText.set_horizontalalignment('center')
+            startText.set_verticalalignment('center')
+            artists.append(startText)
     
     for g in map["goal_locations"]:
         patches.append(
-            Rectangle((g[0] - 0.5, g[1] - 0.5), 1, 1, facecolor=Colors[0],
+            Rectangle((g[0] - 0.5, g[1] - 0.5), 1, 1, facecolor=Colors[2],
                       edgecolor='black',
                       alpha=0.5))
         goalText = ax.text(g[0], g[1], "G")
