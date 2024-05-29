@@ -80,6 +80,22 @@ def memorize_run_stats(old_stats, start_to_goal_times, start_to_pickup_times, pi
                 "number_of_tasks": len(simulation.tasks)}
 
 
+def check_collisions(simulation: SimulationNewRecovery):
+    pathCollisions = 0
+    switchCollisions = 0
+    for agent in simulation.actual_paths.keys():
+        for t in range(0, simulation.get_time() - 1):
+            for agent2 in simulation.actual_paths.keys():
+                if agent2 != agent:
+                    if simulation.actual_paths[agent][t] == simulation.actual_paths[agent2][t]:
+                        pathCollisions += 1
+                    if simulation.actual_paths[agent][t] == simulation.actual_paths[agent2][t + 1] and \
+                            simulation.actual_paths[agent][t + 1] == simulation.actual_paths[agent2][t]:
+                        switchCollisions += 1
+    print("Path collisions: ", pathCollisions)
+    print("Switch collisions: ", switchCollisions)
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-preemption_distance', help='Maximum distance to be part of the preemption zone',
@@ -154,6 +170,12 @@ if __name__ == '__main__':
     agents = param['agents']
     param['tasks'] = tasks
 
+    # removing random n agents from the list of agents
+    agents_to_delete = set(random.sample(range(len(agents)), 0))
+    agents = [agent for agentIndex, agent in enumerate(agents) if agentIndex not in agents_to_delete]
+
+    print("CI SONO ", len(agents), "AGENTI")
+
     print("Running Simulation with task distribution estimation...")
 
     simulation = SimulationNewRecovery(tasks, agents, task_distributions, True,
@@ -182,10 +204,11 @@ if __name__ == '__main__':
         stats = memorize_run_stats(stats, start_to_goal_times, start_to_pickup_times, pickup_to_goal_times, runtime,
                                    simulation, tp)
 
+    check_collisions(simulation)
+
     print("Confronto tra costi teorici e costi reali: ")
     print("Costo stimato: ", sum(tp.get_estimated_task_costs().values()))
     print("Costo reale: ", sum(tp.get_real_task_costs().values()))
-    print("Costo totale (compreso lo stare fermo):", stats["costs"][-1])
 
     print("Saving stats in stats_with_learning.csv...")
 
@@ -227,10 +250,11 @@ if __name__ == '__main__':
         stats = memorize_run_stats(stats, start_to_goal_times, start_to_pickup_times, pickup_to_goal_times, runtime,
                                    simulation, tp)
 
+    check_collisions(simulation)
+
     print("Confronto tra costi teorici e costi reali: ")
     print("Costo stimato: ", sum(tp.get_estimated_task_costs().values()))
     print("Costo reale: ", sum(tp.get_real_task_costs().values()))
-    print("Costo totale (compreso lo stare fermo):", stats["costs"][-1])
 
     print("Saving stats in stats_without_learning.csv...")
 
