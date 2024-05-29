@@ -96,6 +96,13 @@ def check_collisions(simulation: SimulationNewRecovery):
     print("Switch collisions: ", switchCollisions)
 
 
+def check_positive(value):
+    ivalue = int(value)
+    if ivalue <= 0:
+        raise argparse.ArgumentTypeError("%s is an invalid positive int value" % value)
+    return ivalue
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-preemption_distance', help='Maximum distance to be part of the preemption zone',
@@ -115,15 +122,15 @@ if __name__ == '__main__':
     parser.add_argument('-update_td_every_t', help='A integer >= 0 that changes how many time-steps should pass before '
                                                    'the simulation notify the task distribution changes to their '
                                                    'observers', default=15, type=int)
-    parser.add_argument('-agents', help='Maximum number of agents. If the map can contain less than this number, the '
+    parser.add_argument('-agents', help='Maximum number of agents > 0. If the map can contain less than this number, the '
                                         'number of agents is the number of agents supported by the map',
-                        type=int, default=100)
-    parser.add_argument('-starts', help='Maximum number of starts. If the map can contain less than this number, the '
+                        type=check_positive, default=100)
+    parser.add_argument('-starts', help='Maximum number of starts > 0. If the map can contain less than this number, the '
                                        'number of starts is the number of start supported by the map',
-                        type=int, default=100)
-    parser.add_argument('-goals', help='Maximum number of goals. If the map can contain less than this number, the '
+                        type=check_positive, default=100)
+    parser.add_argument('-goals', help='Maximum number of goals > 0. If the map can contain less than this number, the '
                                        'number of goals is the number of goals supported by the map',
-                        type=int, default=100)
+                        type=check_positive, default=100)
     args = parser.parse_args()
 
     number_of_tasks = args.tasks
