@@ -1,5 +1,5 @@
 import matplotlib
-from matplotlib.patches import Circle, Rectangle, RegularPolygon
+from matplotlib.patches import Circle, Rectangle, RegularPolygon, Patch
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import animation
@@ -10,7 +10,7 @@ import yaml
 Colors = ['orange', 'blue', 'green']
 
 
-def showMap(map):
+def showMap(map, map_name="map", legend=True):
     map = map["map"]
     aspect = map["dimensions"][0] / map["dimensions"][1]
 
@@ -49,10 +49,11 @@ def showMap(map):
                 Rectangle((s[0] - 0.5, s[1] - 0.5), 1, 1, facecolor=Colors[0],
                           edgecolor='black',
                           alpha=0.5))
-            startGoalText = ax.text(s[0], s[1], "B")
-            startGoalText.set_horizontalalignment('center')
-            startGoalText.set_verticalalignment('center')
-            artists.append(startGoalText)
+            if not legend:
+                startGoalText = ax.text(s[0], s[1], "B")
+                startGoalText.set_horizontalalignment('center')
+                startGoalText.set_verticalalignment('center')
+                artists.append(startGoalText)
 
             map["goal_locations"].remove(s)
         else:
@@ -60,32 +61,42 @@ def showMap(map):
                 Rectangle((s[0] - 0.5, s[1] - 0.5), 1, 1, facecolor=Colors[1],
                           edgecolor='black',
                           alpha=0.5))
-            startText = ax.text(s[0], s[1], "S")
-            startText.set_horizontalalignment('center')
-            startText.set_verticalalignment('center')
-            artists.append(startText)
+            if not legend:
+                startText = ax.text(s[0], s[1], "S")
+                startText.set_horizontalalignment('center')
+                startText.set_verticalalignment('center')
+                artists.append(startText)
     
     for g in map["goal_locations"]:
         patches.append(
             Rectangle((g[0] - 0.5, g[1] - 0.5), 1, 1, facecolor=Colors[2],
                       edgecolor='black',
                       alpha=0.5))
-        goalText = ax.text(g[0], g[1], "G")
-        goalText.set_horizontalalignment('center')
-        goalText.set_verticalalignment('center')
-        artists.append(goalText)
+        if not legend:
+            goalText = ax.text(g[0], g[1], "G")
+            goalText.set_horizontalalignment('center')
+            goalText.set_verticalalignment('center')
+            artists.append(goalText)
 
     for p in patches:
         ax.add_patch(p)
 
     for a in artists:
         ax.add_artist(a)
+
+    if legend:
+        both_patch = Patch(facecolor=Colors[0], label='Start and Goal')
+        start_patch = Patch(facecolor=Colors[1], label='Start')
+        goal_patch = Patch(facecolor=Colors[2], label='Goal')
+        plt.legend(handles=[both_patch, start_patch, goal_patch], loc="upper right", framealpha=0.5)
+
+    plt.savefig("./maps_pngs/" + map_name + ".png", dpi=300)
     plt.show()
 
 
 if __name__ == '__main__':
-    map_name = "input_warehouse_big_random_with_middle_corridors.yaml"
-    map_path = os.path.join(RootPath.get_root(), os.path.join("Environments", map_name, ))
+    map_name = "den308d"
+    map_path = os.path.join(RootPath.get_root(), os.path.join("Environments", map_name + ".yaml", ))
 
     with open(map_path, 'r') as map_file:
         try:
@@ -93,7 +104,7 @@ if __name__ == '__main__':
         except yaml.YAMLError as exc:
             print(exc)
 
-    map_path_tmp = os.path.join(RootPath.get_root(), os.path.join("Environments", map_name + "_tmp", ))
+    map_path_tmp = os.path.join(RootPath.get_root(), os.path.join("Environments", map_name + ".yaml" + "_tmp", ))
 
     with open(map_path_tmp, 'w') as map_file:
         yaml.safe_dump(map, map_file)
@@ -101,4 +112,4 @@ if __name__ == '__main__':
     with open(map_path_tmp) as map_file:
         map = yaml.load(map_file, Loader=yaml.FullLoader)
 
-    showMap(map)
+    showMap(map, map_name, legend=True)
