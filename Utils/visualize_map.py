@@ -11,7 +11,8 @@ Colors = ['orange', 'blue', 'green']
 
 
 def showMap(map):
-    aspect = map["map"]["dimensions"][0] / map["map"]["dimensions"][1]
+    map = map["map"]
+    aspect = map["dimensions"][0] / map["dimensions"][1]
 
     fig = plt.figure(frameon=False, figsize=(4 * aspect, 4))
     ax = fig.add_subplot(111, aspect='equal')
@@ -22,28 +23,27 @@ def showMap(map):
     # Create boundary patch
     xmin = -0.5
     ymin = -0.5
-    xmax = map["map"]["dimensions"][0] - 0.5
-    ymax = map["map"]["dimensions"][1] - 0.5
+    xmax = map["dimensions"][0] - 0.5
+    ymax = map["dimensions"][1] - 0.5
 
     plt.xlim(xmin, xmax)
     plt.ylim(ymin, ymax)
 
     patches.append(Rectangle((xmin, ymin), xmax - xmin, ymax - ymin, facecolor='none', edgecolor='red'))
 
-    for x in range(map["map"]["dimensions"][0]):
-        for y in range(map["map"]["dimensions"][1]):
+    for x in range(map["dimensions"][0]):
+        for y in range(map["dimensions"][1]):
             patches.append(Rectangle((x - 0.5, y - 0.5), 1, 1, facecolor='none', edgecolor='black'))
 
-    for o in map["map"]["obstacles"]:
+    for o in map["obstacles"]:
         x, y = o[0], o[1]
         patches.append(Rectangle((x - 0.5, y - 0.5), 1, 1, facecolor='black', edgecolor='black'))
 
-
-    for e in map["map"]["non_task_endpoints"]:
+    for e in map["non_task_endpoints"]:
         x, y = e[0], e[1]
         patches.append(Circle((x, y), 0.4, facecolor='green', edgecolor='black'))
 
-    for s in map["map"]["start_locations"]:
+    for s in map["start_locations"]:
         patches.append(
             Rectangle((s[0] - 0.5, s[1] - 0.5), 1, 1, facecolor=Colors[1],
                       edgecolor='black',
@@ -53,7 +53,7 @@ def showMap(map):
         startText.set_verticalalignment('center')
         artists.append(startText)
     
-    for g in map["map"]["goal_locations"]:
+    for g in map["goal_locations"]:
         patches.append(
             Rectangle((g[0] - 0.5, g[1] - 0.5), 1, 1, facecolor=Colors[0],
                       edgecolor='black',
