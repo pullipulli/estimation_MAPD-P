@@ -131,7 +131,7 @@ if __name__ == '__main__':
         yaml.safe_dump(output, output_yaml)
 
     for agent in simulation.actual_paths.keys():
-        for t in range(len(simulation.actual_paths[agent]) - 1):
+        for t in range(simulation.get_time() - 1):
             for agent2 in simulation.actual_paths.keys():
                 if agent2 != agent:
                     if simulation.actual_paths[agent][t] == simulation.actual_paths[agent2][t]:

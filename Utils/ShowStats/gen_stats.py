@@ -17,28 +17,83 @@ from Simulation.TP_with_recovery import TokenPassingRecovery
 from Simulation.simulation_new_recovery import SimulationNewRecovery
 
 
-def memorize_run_stats(old_stats, actual_runtime: float, running_simulation: SimulationNewRecovery, token_passing: TokenPassingRecovery):
+def memorize_run_stats(old_stats, start_to_goal_times, start_to_pickup_times, pickup_to_goal_times,
+                       actual_runtime: float, running_simulation: SimulationNewRecovery,
+                       token_passing: TokenPassingRecovery):
     if running_simulation.time == 1:
-        return {"costs": [0], "serv_times": [0], "runtimes": [actual_runtime],
-                "number_of_tasks": len(simulation.tasks)}
+        return {"costs": [0], "serv_times": [0], "start_to_pickup_times": [0], "pickup_to_goal_times": [0],
+                "runtimes": [actual_runtime], "number_of_tasks": len(simulation.tasks)}
     else:
+        pickup_to_goal_avgs = old_stats["pickup_to_goal_times"]
+        start_to_pickup_avgs = old_stats["start_to_pickup_times"]
         serv_times = old_stats["serv_times"]
         runtimes = old_stats["runtimes"]
         costs = old_stats["costs"]
 
         cost = 0
         for path in running_simulation.actual_paths.values():
-            cost = cost + len(path)
+            cost += len(path)
 
-        serv_time = 0
-        for task, end_time in token_passing.get_token()['completed_tasks_times'].items():
-            serv_time = (end_time - token_passing.get_token()['start_tasks_times'][task])
+        completed_tasks_names = list(token_passing.get_completed_tasks_times().keys())
 
-        serv_times.append(serv_time)
+        pick_up_tasks_names = list(token_passing.get_pick_up_tasks_times().keys())
+
+        for task_name in pick_up_tasks_names:
+            if task_name == "test" or task_name == "safe_idle":
+                pick_up_tasks_names.remove(task_name)
+
+        # Calculate and memorize the time between start and goal of the last task
+        if len(completed_tasks_names) != 0:
+            last_completed_task_time = token_passing.get_completed_tasks_times()[completed_tasks_names[-1]]
+            start_time_of_last_task = token_passing.get_start_tasks_times()[completed_tasks_names[-1]]
+            start_to_goal_time = last_completed_task_time - start_time_of_last_task
+            start_to_goal_times.append(start_to_goal_time)
+        else:
+            start_to_goal_times.append(0)
+
+        # Calculate and memorize the time between start and pickup of the last task
+        if len(pick_up_tasks_names) != 0:
+            last_pickup_time = token_passing.get_pick_up_tasks_times()[pick_up_tasks_names[-1]]
+            start_time_of_pickup = token_passing.get_start_tasks_times()[pick_up_tasks_names[-1]]
+            start_to_pickup_time = last_pickup_time - start_time_of_pickup
+            start_to_pickup_times.append(start_to_pickup_time)
+        else:
+            start_to_pickup_times.append(0)
+
+        # Calculate and memorize the time between pickup and goal of the last task
+        if len(completed_tasks_names) != 0:
+            last_completed_task_time = token_passing.get_completed_tasks_times()[completed_tasks_names[-1]]
+            pickup_time_of_completed = token_passing.get_pick_up_tasks_times()[completed_tasks_names[-1]]
+            pickup_to_goal_time = last_completed_task_time - pickup_time_of_completed
+            pickup_to_goal_times.append(pickup_to_goal_time)
+        else:
+            pickup_to_goal_times.append(0)
+
+        start_to_pickup_avgs.append(mean(start_to_pickup_times))
+        pickup_to_goal_avgs.append(mean(pickup_to_goal_times))
+        serv_times.append(mean(start_to_goal_times))
         runtimes.append(actual_runtime)
         costs.append(cost)
 
-        return {"costs": costs, "serv_times": serv_times, "runtimes": runtimes, "number_of_tasks": len(simulation.tasks)}
+        return {"costs": costs, "serv_times": serv_times, "start_to_pickup_times": start_to_pickup_avgs,
+                "pickup_to_goal_times": pickup_to_goal_avgs, "runtimes": runtimes,
+                "number_of_tasks": len(simulation.tasks)}
+
+
+def check_collisions(simulation: SimulationNewRecovery):
+    pathCollisions = 0
+    switchCollisions = 0
+    for agent in simulation.actual_paths.keys():
+        for t in range(0, simulation.get_time() - 1):
+            for agent2 in simulation.actual_paths.keys():
+                if agent2 != agent:
+                    if simulation.actual_paths[agent][t] == simulation.actual_paths[agent2][t]:
+                        pathCollisions += 1
+                    if simulation.actual_paths[agent][t] == simulation.actual_paths[agent2][t + 1] and \
+                            simulation.actual_paths[agent][t + 1] == simulation.actual_paths[agent2][t]:
+                        switchCollisions += 1
+    print("Path collisions: ", pathCollisions)
+    print("Switch collisions: ", switchCollisions)
 
 
 if __name__ == '__main__':
@@ -115,6 +170,12 @@ if __name__ == '__main__':
     agents = param['agents']
     param['tasks'] = tasks
 
+    # removing random n agents from the list of agents
+    agents_to_delete = set(random.sample(range(len(agents)), 0))
+    agents = [agent for agentIndex, agent in enumerate(agents) if agentIndex not in agents_to_delete]
+
+    print("CI SONO ", len(agents), "AGENTI")
+
     print("Running Simulation with task distribution estimation...")
 
     simulation = SimulationNewRecovery(tasks, agents, task_distributions, True,
@@ -128,6 +189,9 @@ if __name__ == '__main__':
 
     runtime = 0
     stats = defaultdict(lambda: [])
+    start_to_goal_times = []
+    start_to_pickup_times = []
+    pickup_to_goal_times = []
 
     while tp.get_completed_tasks() != len(tasks):
         initialTime = datetime.datetime.now().timestamp()
@@ -137,13 +201,26 @@ if __name__ == '__main__':
         final = datetime.datetime.now().timestamp()
         runtime += final - initialTime
 
-        stats = memorize_run_stats(stats, runtime, simulation, tp)
+        stats = memorize_run_stats(stats, start_to_goal_times, start_to_pickup_times, pickup_to_goal_times, runtime,
+                                   simulation, tp)
+
+    check_collisions(simulation)
+
+    print("Confronto tra costi teorici e costi reali: ")
+    print("Costo stimato: ", sum(tp.get_estimated_task_costs().values()))
+    print("Costo reale: ", sum(tp.get_real_task_costs().values()))
 
     print("Saving stats in stats_with_learning.csv...")
 
     dfStatsLearning = pd.DataFrame(stats, index=np.arange(0, simulation.get_time()))
     dfStatsLearning.index.name = "time"
     dfStatsLearning.to_csv("stats_with_learning.csv")
+
+    print("Saving estimated and real costs per task in costs_learning.csv...")
+
+    dfCostsLearning = pd.DataFrame({"estimated": tp.get_estimated_task_costs(), "real": tp.get_real_task_costs()})
+    dfCostsLearning.index.name = "task_name"
+    dfCostsLearning.to_csv("costs_learning.csv")
 
     print("Running Simulation with fixed task distribution...")
 
@@ -158,6 +235,9 @@ if __name__ == '__main__':
 
     runtime = 0
     stats = defaultdict(lambda: [])
+    start_to_goal_times = []
+    start_to_pickup_times = []
+    pickup_to_goal_times = []
 
     while tp.get_completed_tasks() != len(tasks):
         initialTime = datetime.datetime.now().timestamp()
@@ -167,7 +247,14 @@ if __name__ == '__main__':
         final = datetime.datetime.now().timestamp()
         runtime += final - initialTime
 
-        stats = memorize_run_stats(stats, runtime, simulation, tp)
+        stats = memorize_run_stats(stats, start_to_goal_times, start_to_pickup_times, pickup_to_goal_times, runtime,
+                                   simulation, tp)
+
+    check_collisions(simulation)
+
+    print("Confronto tra costi teorici e costi reali: ")
+    print("Costo stimato: ", sum(tp.get_estimated_task_costs().values()))
+    print("Costo reale: ", sum(tp.get_real_task_costs().values()))
 
     print("Saving stats in stats_without_learning.csv...")
 
@@ -175,3 +262,8 @@ if __name__ == '__main__':
     dfStatsWithoutLearning.index.name = "time"
     dfStatsWithoutLearning.to_csv("stats_without_learning.csv")
 
+    print("Saving estimated and real costs per task in costs.csv...")
+
+    dfCosts = pd.DataFrame({"estimated": tp.get_estimated_task_costs(), "real": tp.get_real_task_costs()})
+    dfCosts.index.name = "task_name"
+    dfCosts.to_csv("costs.csv")
