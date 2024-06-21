@@ -1,9 +1,12 @@
+import argparse
 import datetime
 import json
 import sys
 from collections import defaultdict
 from glob import glob
 from statistics import *
+from argparse import ArgumentParser
+import time
 
 import yaml
 import RootPath
@@ -13,6 +16,7 @@ import random
 
 from Simulation.TP_with_recovery import TokenPassingRecovery
 from Simulation.simulation_new_recovery import SimulationNewRecovery
+
 
 def memorize_run_stats(old_stats, start_to_goal_times, start_to_pickup_times, pickup_to_goal_times,
                        actual_runtime: float, running_simulation: SimulationNewRecovery,
@@ -88,11 +92,11 @@ def generate_output_map(map, tasks_num, tasks_frequency, all_results_num, result
                 for tasks in tasks_num:
                     result_fixed = simulate(map, map["name"], agents, starts, goals, tasks, learning=False)
                     results_num += 1
-                    print("Progress: ", format(results_num/all_results_num, ".2%"))
+                    print("Progress: ", format(results_num / all_results_num, ".2%"))
 
                     results_learning = simulate(map, map["name"], agents, starts, goals, tasks, learning=True)
                     results_num += 1
-                    print("Progress: ", format(results_num/all_results_num, ".2%"))
+                    print("Progress: ", format(results_num / all_results_num, ".2%"))
 
                     final_result[result_fixed['map_name']] = {'fixed': result_fixed, 'learning': results_learning}
     return final_result, results_num
@@ -206,19 +210,53 @@ def simulate(map_dict, map_name, agents_num, starts_num, goals_num, tasks_num, t
 
     print('Avvio Simulazione:', "\n\tNome Mappa:", map_name, "\n\tNumero Agenti:", len(agents),
           "\n\tNumero pickup:", len(start_locations), "\n\tNumero goal:", len(goal_locations),
-          "\n\tNumero task:", tasks_num, "\n\tLearning:", learning)
+          "\n\tNumero task:", tasks_num, "\n\tTask frequency:", tasks_frequency, "\n\tLearning:", learning)
     check_collisions(simulation)
 
-    stats['map_name'] = map_name + "_agents_" + str(len(agents)) + "_pickup_" + str(len(start_locations)) + "_goal_" + str(len(goal_locations)) + "_tasks_" + str(tasks_num)
+    stats['map_name'] = map_name + "_agents_" + str(len(agents)) + "_pickup_" + str(
+        len(start_locations)) + "_goal_" + str(len(goal_locations)) + "_tasks_" + str(tasks_num)
 
     return stats
 
+
 if __name__ == '__main__':
+    def positive_integer(value):
+        ivalue = int(value)
+        if ivalue < 1:
+            raise argparse.ArgumentTypeError("%s is an invalid positive int value" % value)
+        return ivalue
+
+
+    parser = ArgumentParser()
+
+    parser.add_argument('-agents', default=1, type=positive_integer,
+                        help='Number of possible agent combinations')
+    parser.add_argument('-starts', default=1, type=positive_integer,
+                        help='Number of possible starts combinations')
+    parser.add_argument('-goals', default=1, type=positive_integer,
+                        help='Number of possible goals combinations')
+    parser.add_argument('-tasks_frequency', default=1, type=positive_integer,
+                        help='Number of possible task_frequencies combinations')
+    parser.add_argument('-tasks', default=1, type=positive_integer,
+                        help='Number of possible task combinations')
+    args = parser.parse_args()
+
     map_file_names = glob(os.path.join(RootPath.get_root(), 'Environments', '*.yaml'))
 
     maps = []
-    tasks_frequency = []  # TODO
-    tasks_num = np.linspace(5, 100, 5, dtype=int).tolist()
+
+    max_tasks_frequency = 1
+    max_tasks = 100
+
+    if args.tasks == 1:
+        tasks_num = [max_tasks]
+    else:
+        tasks_num = np.linspace(5, max_tasks, args.tasks, dtype=int).tolist()
+
+    if args.tasks_frequency == 1:
+        tasks_frequency = [max_tasks_frequency]
+    else:
+        tasks_frequency = np.linspace(0, max_tasks_frequency, args.tasks_frequency).tolist()
 
     for map_file_name in map_file_names:
         with open(map_file_name, 'r') as map_file:
@@ -228,9 +266,20 @@ if __name__ == '__main__':
                 max_starts = len(map_yaml['map']['start_locations'])
                 max_goals = len(map_yaml['map']['goal_locations'])
 
-                agents_num = np.linspace(5, max_agents, 5, dtype=int).tolist()
-                start_num = np.linspace(5, max_starts, 5, dtype=int).tolist()
-                goal_num = np.linspace(5, max_goals, 5, dtype=int).tolist()
+                if args.agents == 1:
+                    agents_num = [max_agents]
+                else:
+                    agents_num = np.linspace(5, max_agents, args.agents, dtype=int).tolist()
+
+                if args.starts == 1:
+                    start_num = [max_starts]
+                else:
+                    start_num = np.linspace(5, max_starts, args.starts, dtype=int).tolist()
+
+                if args.goals == 1:
+                    goal_num = [max_goals]
+                else:
+                    goal_num = np.linspace(5, max_goals, args.goals, dtype=int).tolist()
 
                 map_yaml['agents_num'] = agents_num
                 map_yaml['start_num'] = start_num
@@ -243,12 +292,17 @@ if __name__ == '__main__':
 
     maps_out = []
 
-    all_results_num = len(maps) * len(tasks_num) * len(agents_num) * len(start_num) * len(goal_num) * 2 # TODO * len(tasks_frequency)
+    all_results_num = len(maps) * len(tasks_num) * len(agents_num) * len(start_num) * len(
+        goal_num * len(tasks_frequency)) * 2
 
     results_num = 0
     for map in maps:
         map_out, results_num = generate_output_map(map, tasks_num, tasks_frequency, all_results_num, results_num)
         maps_out.append(map_out)
 
-    with open('results.json', 'w') as f:
-        json.dump(maps_out, f, separators=(',', ':'))
+    output = {"maps": maps_out, "tasks_num": tasks_num, "tasks_frequency": tasks_frequency, "agents_num": agents_num,
+              "start_num": start_num, "goal_num": goal_num}
+    timestr = time.strftime("%d_%m_%Y__%H_%M_%S")
+
+    with open('ResultsJsons/results_' + timestr + '.json', 'w') as f:
+        json.dump(output, f, separators=(',', ':'))
