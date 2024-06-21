@@ -99,7 +99,11 @@ def generate_output_map(map, tasks_num, tasks_frequency, all_results_num, result
                     results_num += 1
                     print("Progress: ", format(results_num / all_results_num, ".2%"))
 
-                    final_result[result_fixed['map_name']] = {'fixed': result_fixed, 'learning': results_learning}
+                    run_id = (str(result_fixed['map_name']) + "_agents_" + str(result_fixed['agents']) + "_pickup_" +
+                              str(result_fixed['pickup']) + "_goal_" + str(result_fixed['goal']) +
+                              "_tasks_" + str(result_fixed['tasks']))
+
+                    final_result[run_id] = {'fixed': result_fixed, 'learning': results_learning}
     return final_result, results_num
 
 
@@ -214,8 +218,14 @@ def simulate(map_dict, map_name, agents_num, starts_num, goals_num, tasks_num, t
           "\n\tNumero task:", tasks_num, "\n\tTask frequency:", tasks_frequency, "\n\tLearning:", learning)
     check_collisions(simulation)
 
-    stats['map_name'] = map_name + "_agents_" + str(len(agents)) + "_pickup_" + str(
-        len(start_locations)) + "_goal_" + str(len(goal_locations)) + "_tasks_" + str(tasks_num)
+    stats['agents'] = len(agents)
+    stats['pickup'] = len(start_locations)
+    stats['goal'] = len(goal_locations)
+    stats['tasks'] = tasks_num
+    stats['task_frequency'] = tasks_frequency
+    stats['estimated_costs'] = tp.get_estimated_task_costs()
+    stats['real_costs'] = tp.get_real_task_costs()
+    stats['map_name'] = map_name
 
     return stats
 
