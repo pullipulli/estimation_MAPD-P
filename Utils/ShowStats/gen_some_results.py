@@ -1,11 +1,12 @@
-import argparse
+
+# PYTHON_ARGCOMPLETE_OK
 import datetime
 import json
 import sys
 from collections import defaultdict
 from glob import glob
 from statistics import *
-from argparse import ArgumentParser
+from argparse import ArgumentParser, ArgumentTypeError
 import time
 
 import yaml
@@ -223,23 +224,44 @@ if __name__ == '__main__':
     def positive_integer(value):
         ivalue = int(value)
         if ivalue < 1:
-            raise argparse.ArgumentTypeError("%s is an invalid positive int value" % value)
+            raise ArgumentTypeError("%s is an invalid positive int value" % value)
         return ivalue
 
 
     parser = ArgumentParser()
 
-    parser.add_argument('-agents', default=1, type=positive_integer,
-                        help='Number of possible agent combinations')
-    parser.add_argument('-starts', default=1, type=positive_integer,
-                        help='Number of possible starts combinations')
-    parser.add_argument('-goals', default=1, type=positive_integer,
-                        help='Number of possible goals combinations')
-    parser.add_argument('-tasks_frequency', default=1, type=positive_integer,
-                        help='Number of possible task_frequencies combinations')
-    parser.add_argument('-tasks', default=1, type=positive_integer,
-                        help='Number of possible task combinations')
+    agent_group = parser.add_mutually_exclusive_group()
+    agent_group.add_argument('-agents', default=1, type=positive_integer,
+                             help='Number of possible agent combinations')
+    agent_group.add_argument('-agents_list', nargs='+', type=positive_integer,
+                             help='List of agent combinations')
+
+    start_group = parser.add_mutually_exclusive_group()
+    start_group.add_argument('-starts', default=1, type=positive_integer,
+                             help='Number of possible starts combinations')
+    start_group.add_argument('-starts_list', nargs='+', type=positive_integer,
+                             help='List of start combinations')
+
+    goal_group = parser.add_mutually_exclusive_group()
+    goal_group.add_argument('-goals', default=1, type=positive_integer,
+                            help='Number of possible goals combinations')
+    goal_group.add_argument('-goals_list', nargs='+', type=positive_integer,
+                            help='List of goal combinations')
+
+    task_freq_group = parser.add_mutually_exclusive_group()
+    task_freq_group.add_argument('-tasks_frequency', default=1, type=positive_integer,
+                                 help='Number of possible task_frequencies combinations')
+    task_freq_group.add_argument('-tasks_frequency_list', nargs='+', type=float,
+                                 help='List of task_frequencies combinations')
+
+    task_group = parser.add_mutually_exclusive_group()
+    task_group.add_argument('-tasks', default=1, type=positive_integer,
+                            help='Number of possible task combinations')
+    task_group.add_argument('-tasks_list', nargs='+', type=positive_integer,
+                            help='List of task combinations')
     args = parser.parse_args()
+
+    print(args)
 
     map_file_names = glob(os.path.join(RootPath.get_root(), 'Environments', '*.yaml'))
 
@@ -248,12 +270,16 @@ if __name__ == '__main__':
     max_tasks_frequency = 1
     max_tasks = 100
 
-    if args.tasks == 1:
+    if args.tasks_list:
+        tasks_num = args.tasks_list
+    elif args.tasks == 1:
         tasks_num = [max_tasks]
     else:
         tasks_num = np.linspace(5, max_tasks, args.tasks, dtype=int).tolist()
 
-    if args.tasks_frequency == 1:
+    if args.tasks_frequency_list:
+        tasks_frequency = args.tasks_frequency_list
+    elif args.tasks_frequency == 1:
         tasks_frequency = [max_tasks_frequency]
     else:
         tasks_frequency = np.linspace(0, max_tasks_frequency, args.tasks_frequency).tolist()
@@ -266,17 +292,23 @@ if __name__ == '__main__':
                 max_starts = len(map_yaml['map']['start_locations'])
                 max_goals = len(map_yaml['map']['goal_locations'])
 
-                if args.agents == 1:
+                if args.agents_list:
+                    agents_num = args.agents_list
+                elif args.agents == 1:
                     agents_num = [max_agents]
                 else:
                     agents_num = np.linspace(5, max_agents, args.agents, dtype=int).tolist()
 
-                if args.starts == 1:
+                if args.starts_list:
+                    start_num = args.starts_list
+                elif args.starts == 1:
                     start_num = [max_starts]
                 else:
                     start_num = np.linspace(5, max_starts, args.starts, dtype=int).tolist()
 
-                if args.goals == 1:
+                if args.goals_list:
+                    goal_num = args.goals_list
+                elif args.goals == 1:
                     goal_num = [max_goals]
                 else:
                     goal_num = np.linspace(5, max_goals, args.goals, dtype=int).tolist()
@@ -304,5 +336,5 @@ if __name__ == '__main__':
               "start_num": start_num, "goal_num": goal_num}
     timestr = time.strftime("%d_%m_%Y__%H_%M_%S")
 
-    with open('ResultsJsons/results_' + timestr + '.json', 'w') as f:
+    with open('./Utils/ShowStats/ResultsJsons/results_' + timestr + '.json', 'w+') as f:
         json.dump(output, f, separators=(',', ':'))
