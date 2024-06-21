@@ -95,7 +95,7 @@ def showMap(map, map_name="map", legend=True):
 
 
 if __name__ == '__main__':
-    map_name = "den308d"
+    map_name = "input_warehouse_mid_with_middle_corridors"
     map_path = os.path.join(RootPath.get_root(), os.path.join("Environments", map_name + ".yaml", ))
 
     with open(map_path, 'r') as map_file:
@@ -112,4 +112,4 @@ if __name__ == '__main__':
     with open(map_path_tmp) as map_file:
         map = yaml.load(map_file, Loader=yaml.FullLoader)
 
-    showMap(map, map_name, legend=True)
+    showMap(map, map_name, legend=False)
