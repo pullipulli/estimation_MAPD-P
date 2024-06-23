@@ -1,4 +1,3 @@
-# PYTHON_ARGCOMPLETE_OK
 import datetime
 import json
 import sys
@@ -41,8 +40,10 @@ class GenerateResults:
                   "start_num": self.start_num, "goal_num": self.goal_num}
         timestr = time.strftime("%d_%m_%Y__%H_%M_%S")
 
-        with open('./Utils/ShowStats/ResultsJsons/results_' + timestr + '.json', 'w+') as f:
+        with open(RootPath.get_root() + '/Utils/ShowStats/ResultsJsons/results_' + timestr + '.json', 'w+') as f:
             json.dump(output, f, separators=(',', ':'))
+
+        print("Results saved in: ", 'results_' + timestr + '.json')
 
     @staticmethod
     def memorize_run_stats(old_stats, start_to_goal_times, start_to_pickup_times, pickup_to_goal_times,
