@@ -134,3 +134,99 @@ class StatsVisualizer:
                    possible_variable_num)
         plt.legend()
         plt.show()
+
+    def show_makespans(self, map_name):
+        run_ids = self.get_run_ids_from_map(map_name)
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(5, 6))
+
+        # set width of bar
+        barWidth = 0.25
+        possible_variable_num = []
+        fixed_makespans = []
+        learning_makespans = []
+        variable_param = self.get_variable_config_parameter()
+
+        for run_id in run_ids:
+            config, df_fixed, df_learning, df_fixed_costs, df_learning_costs = self.stats_of(run_id=run_id)
+            makespan = df_fixed["time"].iloc[-1] + 1
+            fixed_makespans.append(makespan)
+            makespan_learning = df_learning["time"].iloc[-1] + 1
+            learning_makespans.append(makespan_learning)
+            if config[variable_param] not in possible_variable_num:
+                possible_variable_num.append(config[variable_param])
+
+        config = self.stats_of(run_id=run_ids[0])[0]
+
+        bar0 = np.arange(len(fixed_makespans))
+        bar1 = [x + barWidth for x in bar0]
+
+        # Make the plot
+        ax.bar(bar0, fixed_makespans, color='r', width=barWidth,
+               edgecolor='grey', label='Fixed')
+        ax.bar(bar1, learning_makespans, color='g', width=barWidth,
+               edgecolor='grey', label='Learning')
+
+        for bars in ax.containers:
+            ax.bar_label(bars)
+
+        parameter_string = ""
+        for param in config:
+            if param != variable_param and param != "map":
+                parameter_string += f"{param}: {config[param]} "
+        parameter_string += '\n'
+        variable_string = f"Possible values of {variable_param}: {possible_variable_num}"
+
+        plt.xlabel(f"Mappa: {config["map"]}\n" + parameter_string + variable_string, fontweight='bold', fontsize=8)
+        plt.ylabel('Makespan', fontweight='bold', fontsize=8)
+        plt.xticks([r + barWidth / 2 for r in range(len(possible_variable_num))],
+                   possible_variable_num)
+        plt.legend()
+        plt.show()
+
+    def show_runtimes(self, map_name):
+        run_ids = self.get_run_ids_from_map(map_name)
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(5, 6))
+
+        # set width of bar
+        barWidth = 0.25
+        possible_variable_num = []
+        fixed_runtimes = []
+        learning_runtimes = []
+        variable_param = self.get_variable_config_parameter()
+
+        for run_id in run_ids:
+            config, df_fixed, df_learning, df_fixed_costs, df_learning_costs = self.stats_of(run_id=run_id)
+            runtime = df_fixed["runtimes"].iloc[-1] + 1
+            fixed_runtimes.append(runtime)
+            runtime_learning = df_learning["runtimes"].iloc[-1] + 1
+            learning_runtimes.append(runtime_learning)
+            if config[variable_param] not in possible_variable_num:
+                possible_variable_num.append(config[variable_param])
+
+        config = self.stats_of(run_id=run_ids[0])[0]
+
+        bar0 = np.arange(len(fixed_runtimes))
+        bar1 = [x + barWidth for x in bar0]
+
+        # Make the plot
+        ax.bar(bar0, fixed_runtimes, color='r', width=barWidth,
+               edgecolor='grey', label='Fixed')
+        ax.bar(bar1, learning_runtimes, color='g', width=barWidth,
+               edgecolor='grey', label='Learning')
+
+        for bars in ax.containers:
+            ax.bar_label(bars)
+
+        parameter_string = ""
+        for param in config:
+            if param != variable_param and param != "map":
+                parameter_string += f"{param}: {config[param]} "
+        parameter_string += '\n'
+        variable_string = f"Possible values of {variable_param}: {possible_variable_num}"
+
+        plt.xlabel(f"Mappa: {config["map"]}\n" + parameter_string + variable_string, fontweight='bold', fontsize=8)
+        plt.ylabel('Runtime', fontweight='bold', fontsize=8)
+        plt.xticks([r + barWidth / 2 for r in range(len(possible_variable_num))],
+                   possible_variable_num)
+        plt.legend()
+        plt.show()
