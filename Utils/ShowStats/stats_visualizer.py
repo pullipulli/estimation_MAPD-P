@@ -8,6 +8,8 @@ TIME_METRIC_LABELS = ["Costs per Task", "Service Times", "Pickup to Goal Times",
 
 TIME_METRICS = dict(zip(TIME_METRIC_NAMES, TIME_METRIC_LABELS))
 
+TIME_EVOLUTION_NAMES = ["serv_times", "pickup_to_goal_times", "start_to_pickup_times", "runtimes"]
+
 
 class StatsVisualizer:
     def __init__(self, maps, agents_num, tasks_num, task_frequency_num, pickup_num, goal_num):
@@ -142,6 +144,28 @@ class StatsVisualizer:
                    possible_variable_num)
         plt.legend()
         plt.show()
+
+    def show_metric_evolution(self, map_name, metric_name, metric_label):
+        run_ids = self.get_run_ids_from_map(map_name)
+
+        for run_id in run_ids:
+            config, df_fixed, df_learning, df_fixed_costs, df_learning_costs = self.stats_of(run_id=run_id)
+            fixed_metric = df_fixed[metric_name]
+            learning_metric = df_learning[metric_name]
+
+            fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(5, 6))
+            ax.plot(fixed_metric, label='Fixed')
+            ax.plot(learning_metric, label='Learning')
+
+            parameter_string = ""
+            for param in config:
+                if param != "map":
+                    parameter_string += f"{param}: {config[param]} "
+
+            plt.xlabel(f"Mappa: {config["map"]}\n" + parameter_string, fontweight='bold', fontsize=8)
+            plt.ylabel(metric_label, fontweight='bold', fontsize=8)
+            plt.legend()
+            plt.show()
 
     def show_real_vs_estimated_avg_costs(self, map_name):
         run_ids = self.get_run_ids_from_map(map_name)
