@@ -2,6 +2,10 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+METRIC_NAMES = ["costs", "serv_times", "pickup_to_goal_times", "start_to_pickup_times", "runtimes", "makespans"]
+METRIC_LABELS = ["Costs per Task", "Service Times", "Pickup to Goal Times", "Start to Pickup Times", "Runtimes", "Makespans"]
+
+METRICS = dict(zip(METRIC_NAMES, METRIC_LABELS))
 
 class StatsVisualizer:
     def __init__(self, maps, agents_num, tasks_num, task_frequency_num, pickup_num, goal_num):
@@ -19,7 +23,6 @@ class StatsVisualizer:
             "goal": goal_num
         }
         variable_params = []
-
         for param in self.params:
             if len(self.params[param]) > 1:
                 variable_params.append(param)
@@ -48,14 +51,14 @@ class StatsVisualizer:
             "costs": fixed["costs"], "serv_times": fixed["serv_times"],
             "pickup_to_goal_times": fixed["pickup_to_goal_times"],
             "start_to_pickup_times": fixed["start_to_pickup_times"], "runtimes": fixed["runtimes"],
-            "time": time["fixed"]
+            "makespans": time["fixed"]
         }, index=time["fixed"])
 
         df_time_learning = pd.DataFrame({
             "costs": learning["costs"], "serv_times": learning["serv_times"],
             "pickup_to_goal_times": learning["pickup_to_goal_times"],
             "start_to_pickup_times": learning["start_to_pickup_times"], "runtimes": learning["runtimes"],
-            "time": time["learning"]
+            "makespans": time["learning"]
         }, index=time["learning"])
 
         df_tasks_fixed = pd.DataFrame({
@@ -87,35 +90,38 @@ class StatsVisualizer:
                 run_ids.append(map["run_id"])
         return run_ids
 
-    def show_costs(self, map_name):
+    def show_double_bar_metric(self, map_name, metric_name, metric_label):
         run_ids = self.get_run_ids_from_map(map_name)
         fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(5, 6))
 
         # set width of bar
         barWidth = 0.25
         possible_variable_num = []
-        fixed_costs = []
-        learning_costs = []
+        fixed_metric = []
+        learning_metric = []
         variable_param = self.get_variable_config_parameter()
 
         for run_id in run_ids:
             config, df_fixed, df_learning, df_fixed_costs, df_learning_costs = self.stats_of(run_id=run_id)
-            cost = df_fixed["costs"].apply(lambda x: x / config["tasks"]).iloc[-1]
-            fixed_costs.append(cost)
-            cost_learning = df_learning["costs"].apply(lambda x: x / config["tasks"]).iloc[-1]
-            learning_costs.append(cost_learning)
+            metric = df_fixed[metric_name].iloc[-1]
+            fixed_metric.append(metric)
+            metric_learning = df_learning[metric_name].iloc[-1]
+            learning_metric.append(metric_learning)
             if config[variable_param] not in possible_variable_num:
                 possible_variable_num.append(config[variable_param])
 
         config = self.stats_of(run_id=run_ids[0])[0]
 
-        bar0 = np.arange(len(fixed_costs))
+        if metric_name == "costs":
+            fixed_metric = [x / config["tasks"] for x in fixed_metric]
+            learning_metric = [x / config["tasks"] for x in learning_metric]
+
+        bar0 = np.arange(len(fixed_metric))
         bar1 = [x + barWidth for x in bar0]
 
-        # Make the plot
-        ax.bar(bar0, fixed_costs, color='r', width=barWidth,
+        ax.bar(bar0, fixed_metric, color='r', width=barWidth,
                edgecolor='grey', label='Fixed')
-        ax.bar(bar1, learning_costs, color='g', width=barWidth,
+        ax.bar(bar1, learning_metric, color='g', width=barWidth,
                edgecolor='grey', label='Learning')
 
         for bars in ax.containers:
@@ -129,103 +135,7 @@ class StatsVisualizer:
         variable_string = f"Possible values of {variable_param}: {possible_variable_num}"
 
         plt.xlabel(f"Mappa: {config["map"]}\n" + parameter_string + variable_string, fontweight='bold', fontsize=8)
-        plt.ylabel('Costs per task', fontweight='bold', fontsize=8)
-        plt.xticks([r + barWidth / 2 for r in range(len(possible_variable_num))],
-                   possible_variable_num)
-        plt.legend()
-        plt.show()
-
-    def show_makespans(self, map_name):
-        run_ids = self.get_run_ids_from_map(map_name)
-        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(5, 6))
-
-        # set width of bar
-        barWidth = 0.25
-        possible_variable_num = []
-        fixed_makespans = []
-        learning_makespans = []
-        variable_param = self.get_variable_config_parameter()
-
-        for run_id in run_ids:
-            config, df_fixed, df_learning, df_fixed_costs, df_learning_costs = self.stats_of(run_id=run_id)
-            makespan = df_fixed["time"].iloc[-1] + 1
-            fixed_makespans.append(makespan)
-            makespan_learning = df_learning["time"].iloc[-1] + 1
-            learning_makespans.append(makespan_learning)
-            if config[variable_param] not in possible_variable_num:
-                possible_variable_num.append(config[variable_param])
-
-        config = self.stats_of(run_id=run_ids[0])[0]
-
-        bar0 = np.arange(len(fixed_makespans))
-        bar1 = [x + barWidth for x in bar0]
-
-        # Make the plot
-        ax.bar(bar0, fixed_makespans, color='r', width=barWidth,
-               edgecolor='grey', label='Fixed')
-        ax.bar(bar1, learning_makespans, color='g', width=barWidth,
-               edgecolor='grey', label='Learning')
-
-        for bars in ax.containers:
-            ax.bar_label(bars)
-
-        parameter_string = ""
-        for param in config:
-            if param != variable_param and param != "map":
-                parameter_string += f"{param}: {config[param]} "
-        parameter_string += '\n'
-        variable_string = f"Possible values of {variable_param}: {possible_variable_num}"
-
-        plt.xlabel(f"Mappa: {config["map"]}\n" + parameter_string + variable_string, fontweight='bold', fontsize=8)
-        plt.ylabel('Makespan', fontweight='bold', fontsize=8)
-        plt.xticks([r + barWidth / 2 for r in range(len(possible_variable_num))],
-                   possible_variable_num)
-        plt.legend()
-        plt.show()
-
-    def show_runtimes(self, map_name):
-        run_ids = self.get_run_ids_from_map(map_name)
-        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(5, 6))
-
-        # set width of bar
-        barWidth = 0.25
-        possible_variable_num = []
-        fixed_runtimes = []
-        learning_runtimes = []
-        variable_param = self.get_variable_config_parameter()
-
-        for run_id in run_ids:
-            config, df_fixed, df_learning, df_fixed_costs, df_learning_costs = self.stats_of(run_id=run_id)
-            runtime = df_fixed["runtimes"].iloc[-1] + 1
-            fixed_runtimes.append(runtime)
-            runtime_learning = df_learning["runtimes"].iloc[-1] + 1
-            learning_runtimes.append(runtime_learning)
-            if config[variable_param] not in possible_variable_num:
-                possible_variable_num.append(config[variable_param])
-
-        config = self.stats_of(run_id=run_ids[0])[0]
-
-        bar0 = np.arange(len(fixed_runtimes))
-        bar1 = [x + barWidth for x in bar0]
-
-        # Make the plot
-        ax.bar(bar0, fixed_runtimes, color='r', width=barWidth,
-               edgecolor='grey', label='Fixed')
-        ax.bar(bar1, learning_runtimes, color='g', width=barWidth,
-               edgecolor='grey', label='Learning')
-
-        for bars in ax.containers:
-            ax.bar_label(bars)
-
-        parameter_string = ""
-        for param in config:
-            if param != variable_param and param != "map":
-                parameter_string += f"{param}: {config[param]} "
-        parameter_string += '\n'
-        variable_string = f"Possible values of {variable_param}: {possible_variable_num}"
-
-        plt.xlabel(f"Mappa: {config["map"]}\n" + parameter_string + variable_string, fontweight='bold', fontsize=8)
-        plt.ylabel('Runtime', fontweight='bold', fontsize=8)
+        plt.ylabel(metric_label, fontweight='bold', fontsize=8)
         plt.xticks([r + barWidth / 2 for r in range(len(possible_variable_num))],
                    possible_variable_num)
         plt.legend()
