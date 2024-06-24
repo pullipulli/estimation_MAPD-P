@@ -4,7 +4,6 @@ import json
 import os
 import random
 import sys
-from statistics import *
 
 import numpy
 import yaml
@@ -13,6 +12,7 @@ import RootPath
 from Simulation.TP_with_recovery import TokenPassingRecovery
 from Simulation.simulation_new_recovery import SimulationNewRecovery
 from Utils.visualize import Animation
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -110,15 +110,28 @@ if __name__ == '__main__':
                               preemption_radius=args.preemption_distance,
                               preemption_duration=args.preemption_duration)
 
-    initialTime = datetime.datetime.now().timestamp()
+    runtime = 0
+
     while tp.get_completed_tasks() != len(tasks):
+        initialTime = datetime.datetime.now().timestamp()
+
         simulation.time_forward(tp)
 
-    final = datetime.datetime.now().timestamp()
-    runtime = final - initialTime
-    agents_cost = simulation.agents_cost
+        final = datetime.datetime.now().timestamp()
+        runtime = final - initialTime
+
+    cost = 0
+    for path in simulation.actual_paths.values():
+        cost = cost + len(path)
+
+    output = {'schedule': simulation.actual_paths, 'cost': cost,
+              'completed_tasks_times': tp.get_completed_tasks_times(),
+              }
+    with open(args.output, 'w') as output_yaml:
+        yaml.safe_dump(output, output_yaml)
+
     for agent in simulation.actual_paths.keys():
-        for t in range(len(simulation.actual_paths[agent]) - 1):
+        for t in range(simulation.get_time() - 1):
             for agent2 in simulation.actual_paths.keys():
                 if agent2 != agent:
                     if simulation.actual_paths[agent][t] == simulation.actual_paths[agent2][t]:
@@ -132,34 +145,6 @@ if __name__ == '__main__':
                             simulation.actual_paths[agent]) + str(
                             simulation.actual_paths[agent2]) + "at time " + str(
                             t))
-
-    costs = []
-    replans = []
-    service_times = []
-    sim_times = []
-    algo_times = []
-    cost = 0
-    for path in simulation.actual_paths.values():
-        cost = cost + len(path)
-    output = {'schedule': simulation.actual_paths, 'cost': cost,
-              'completed_tasks_times': tp.get_completed_tasks_times(),
-              }
-    with open(args.output, 'w') as output_yaml:
-        yaml.safe_dump(output, output_yaml)
-
-        cost = 0
-        for path in simulation.actual_paths.values():
-            cost = cost + len(path)
-        costs.append(cost)
-        serv_time = 0
-        for task, end_time in tp.get_token()['completed_tasks_times'].items():
-            serv_time = (end_time - tp.get_token()['start_tasks_times'][task])
-            service_times.append(serv_time)
-        print("Service time of this run: ", serv_time)
-    avg_cost = mean(costs)
-    avg_service_time = mean(service_times)
-    print("Average service time:", avg_service_time, ". Standard deviation: ", ". Agents cost: ", agents_cost,
-          ". Runtime cost:", runtime, ". Makespan:", simulation.time)
 
     args.map = os.path.join(RootPath.get_root(),
                             os.path.join(config['input_path'], config['input_name'] + "_tmp", ))
