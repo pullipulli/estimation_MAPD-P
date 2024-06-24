@@ -83,7 +83,7 @@ class StatsVisualizer:
 
         config = {
             "agents": fixed["agents"], "tasks": fixed["tasks"], "map": fixed["map_name"],
-            "pickup": fixed["pickup"], "goal": fixed["goal"], "task_freq": fixed["task_frequency"]
+            "pickup": fixed["pickup"], "goal": fixed["goal"], "task_frequency": fixed["task_frequency"]
         }
 
         return config, df_time_fixed, df_time_learning, df_tasks_fixed, df_tasks_learning
