@@ -109,24 +109,23 @@ class GenerateResults:
                     "number_of_tasks": len(running_simulation.tasks)}
 
     def generate_output_map(self, map):
-
         for agents in self.agents_num:
             for starts in self.start_num:
                 for goals in self.goal_num:
                     for tasks in self.tasks_num:
-                        for tasks_frequency in self.tasks_frequency:
-                            result_fixed = self.simulate(map, map["name"], agents, starts, goals, tasks, tasks_frequency, learning=False)
+                        for task_frequency in self.tasks_frequency:
+                            result_fixed = self.simulate(map, map["name"], agents, starts, goals, tasks, task_frequency, learning=False)
                             self.simulation_progress += 1
                             print("Progress: ", format(self.simulation_progress / self.simulation_number, ".2%"))
 
-                            results_learning = self.simulate(map, map["name"], agents, starts, goals, tasks, tasks_frequency, learning=True)
+                            results_learning = self.simulate(map, map["name"], agents, starts, goals, tasks, task_frequency, learning=True)
                             self.simulation_progress += 1
                             print("Progress: ", format(self.simulation_progress / self.simulation_number, ".2%"))
 
                             run_id = (str(result_fixed['map_name']) + "_agents_" + str(
                                 result_fixed['agents']) + "_pickup_" +
                                       str(result_fixed['pickup']) + "_goal_" + str(result_fixed['goal']) +
-                                      "_tasks_" + str(result_fixed['tasks']))
+                                      "_tasks_" + str(result_fixed['tasks']) + "_task_frequency_" + str(result_fixed['task_frequency']))
 
                             if run_id not in self.run_ids:
                                 self.maps_out.append({'run_id': run_id, 'fixed': result_fixed, 'learning': results_learning})
