@@ -109,28 +109,28 @@ class GenerateResults:
                     "number_of_tasks": len(running_simulation.tasks)}
 
     def generate_output_map(self, map):
-        # TODO tasks_frequency
 
         for agents in self.agents_num:
             for starts in self.start_num:
                 for goals in self.goal_num:
                     for tasks in self.tasks_num:
-                        result_fixed = self.simulate(map, map["name"], agents, starts, goals, tasks, learning=False)
-                        self.simulation_progress += 1
-                        print("Progress: ", format(self.simulation_progress / self.simulation_number, ".2%"))
+                        for tasks_frequency in self.tasks_frequency:
+                            result_fixed = self.simulate(map, map["name"], agents, starts, goals, tasks, tasks_frequency, learning=False)
+                            self.simulation_progress += 1
+                            print("Progress: ", format(self.simulation_progress / self.simulation_number, ".2%"))
 
-                        results_learning = self.simulate(map, map["name"], agents, starts, goals, tasks, learning=True)
-                        self.simulation_progress += 1
-                        print("Progress: ", format(self.simulation_progress / self.simulation_number, ".2%"))
+                            results_learning = self.simulate(map, map["name"], agents, starts, goals, tasks, tasks_frequency, learning=True)
+                            self.simulation_progress += 1
+                            print("Progress: ", format(self.simulation_progress / self.simulation_number, ".2%"))
 
-                        run_id = (str(result_fixed['map_name']) + "_agents_" + str(
-                            result_fixed['agents']) + "_pickup_" +
-                                  str(result_fixed['pickup']) + "_goal_" + str(result_fixed['goal']) +
-                                  "_tasks_" + str(result_fixed['tasks']))
+                            run_id = (str(result_fixed['map_name']) + "_agents_" + str(
+                                result_fixed['agents']) + "_pickup_" +
+                                      str(result_fixed['pickup']) + "_goal_" + str(result_fixed['goal']) +
+                                      "_tasks_" + str(result_fixed['tasks']))
 
-                        if run_id not in self.run_ids:
-                            self.maps_out.append({'run_id': run_id, 'fixed': result_fixed, 'learning': results_learning})
-                            self.run_ids.add(run_id)
+                            if run_id not in self.run_ids:
+                                self.maps_out.append({'run_id': run_id, 'fixed': result_fixed, 'learning': results_learning})
+                                self.run_ids.add(run_id)
 
     @staticmethod
     def check_collisions(simulation):
@@ -149,7 +149,7 @@ class GenerateResults:
         print("Switch collisions: ", switchCollisions)
 
     @staticmethod
-    def simulate(map_dict, map_name, agents_num, starts_num, goals_num, tasks_num, tasks_frequency=0.2, learning=False):
+    def simulate(map_dict, map_name, agents_num, starts_num, goals_num, tasks_num, tasks_frequency, learning=False):
         goal_locations = map_dict['map']['goal_locations']
         start_locations = map_dict['map']['start_locations']
 
@@ -319,7 +319,7 @@ if __name__ == '__main__':
     elif args.tasks_frequency == 1:
         tasks_frequency = [max_tasks_frequency]
     else:
-        tasks_frequency = np.linspace(0, max_tasks_frequency, args.tasks_frequency).tolist()
+        tasks_frequency = np.linspace(0.05, max_tasks_frequency, args.tasks_frequency).tolist()
 
     for map_file_name in map_file_names:
         with open(map_file_name, 'r') as map_file:

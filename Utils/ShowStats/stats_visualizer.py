@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -94,86 +96,114 @@ class StatsVisualizer:
                 run_ids.append(map["run_id"])
         return run_ids
 
-    def show_double_bar_time_metric(self, map_name, metric_name, metric_label):
+    def show_double_bar_time_metric(self, map_name, ax, row_number=2):
         run_ids = self.get_run_ids_from_map(map_name)
-        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(5, 6))
 
         # set width of bar
         barWidth = 0.25
         possible_variable_num = []
-        fixed_metric = []
-        learning_metric = []
+        fixed_metric = defaultdict(lambda: [])
+        learning_metric = defaultdict(lambda: [])
         variable_param = self.get_variable_config_parameter()
 
         for run_id in run_ids:
             config, df_fixed, df_learning, df_fixed_costs, df_learning_costs = self.stats_of(run_id=run_id)
-            metric = df_fixed[metric_name].iloc[-1]
-            fixed_metric.append(metric)
-            metric_learning = df_learning[metric_name].iloc[-1]
-            learning_metric.append(metric_learning)
+            for metric_name in TIME_METRIC_NAMES:
+                metric = df_fixed[metric_name].iloc[-1]
+                fixed_metric[metric_name].append(metric)
+                metric_learning = df_learning[metric_name].iloc[-1]
+                learning_metric[metric_name].append(metric_learning)
+
             if config[variable_param] not in possible_variable_num:
                 possible_variable_num.append(config[variable_param])
 
         config = self.stats_of(run_id=run_ids[0])[0]
 
-        if metric_name == "costs":
-            fixed_metric = [x / config["tasks"] for x in fixed_metric]
-            learning_metric = [x / config["tasks"] for x in learning_metric]
+        rowIndex = 0
+        columnIndex = 0
+        metric_index = 0
+        for metric_name in TIME_METRIC_NAMES:
+            if metric_index == len(TIME_METRIC_NAMES) / row_number:
+                rowIndex += 1
+                columnIndex = 0
 
-        bar0 = np.arange(len(fixed_metric))
-        bar1 = [x + barWidth for x in bar0]
+            if metric_name == "costs":
+                fixed_metric[metric_name] = [x / config["tasks"] for x in fixed_metric[metric_name]]
+                learning_metric[metric_name] = [x / config["tasks"] for x in learning_metric[metric_name]]
 
-        ax.bar(bar0, fixed_metric, color='r', width=barWidth,
-               edgecolor='grey', label='Fixed')
-        ax.bar(bar1, learning_metric, color='g', width=barWidth,
-               edgecolor='grey', label='Learning')
+            bar0 = np.arange(len(fixed_metric[metric_name]))
+            bar1 = [x + barWidth for x in bar0]
 
-        for bars in ax.containers:
-            ax.bar_label(bars)
+            ax[rowIndex][columnIndex].bar(bar0, fixed_metric[metric_name], color='r', width=barWidth,
+                                           edgecolor='grey', label='Fixed')
+            ax[rowIndex][columnIndex].bar(bar1, learning_metric[metric_name], color='g', width=barWidth,
+                                           edgecolor='grey', label='Learning')
 
-        parameter_string = ""
-        for param in config:
-            if param != variable_param and param != "map":
-                parameter_string += f"{param}: {config[param]} "
-        parameter_string += '\n'
-        variable_string = f"Possible values of {variable_param}: {possible_variable_num}"
-
-        plt.xlabel(f"Mappa: {config["map"]}\n" + parameter_string + variable_string, fontweight='bold', fontsize=8)
-        plt.ylabel(metric_label, fontweight='bold', fontsize=8)
-        plt.xticks([r + barWidth / 2 for r in range(len(possible_variable_num))],
-                   possible_variable_num)
-        plt.legend()
-        plt.show()
-
-    def show_metric_evolution(self, map_name, metric_name, metric_label):
-        run_ids = self.get_run_ids_from_map(map_name)
-
-        for run_id in run_ids:
-            config, df_fixed, df_learning, df_fixed_costs, df_learning_costs = self.stats_of(run_id=run_id)
-            fixed_metric = df_fixed[metric_name]
-            learning_metric = df_learning[metric_name]
-
-            fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(5, 6))
-            ax.plot(fixed_metric, label='Fixed')
-            ax.plot(learning_metric, label='Learning')
+            for bars in ax[rowIndex][columnIndex].containers:
+                ax[rowIndex][columnIndex].bar_label(bars)
 
             parameter_string = ""
             for param in config:
-                if param != "map":
+                if param != variable_param and param != "map":
                     parameter_string += f"{param}: {config[param]} "
+            parameter_string += '\n'
+            variable_string = f"Possible values of {variable_param}: {possible_variable_num}"
 
-            plt.xlabel(f"Mappa: {config["map"]}\n" + parameter_string, fontweight='bold', fontsize=8)
-            plt.ylabel(metric_label, fontweight='bold', fontsize=8)
-            plt.legend()
-            plt.show()
+            ax[rowIndex][columnIndex].set_xlabel(f"Mappa: {config["map"]}\n" + parameter_string + variable_string,
+                                                  fontweight='bold', fontsize=8)
+            ax[rowIndex][columnIndex].set_ylabel(TIME_METRICS[metric_name], fontweight='bold', fontsize=8)
+            ax[rowIndex][columnIndex].set_xticks([r + barWidth / 2 for r in range(len(possible_variable_num))],
+                                                  possible_variable_num)
+            ax[rowIndex][columnIndex].legend()
+            metric_index += 1
+            columnIndex += 1
+        plt.show()
 
-    def show_real_vs_estimated_avg_costs(self, map_name):
+    def show_metric_evolution(self, map_name, ax):
+        run_ids = self.get_run_ids_from_map(map_name)
+
+        run_index = 0
+
+        for run_id in run_ids:
+            config, df_fixed, df_learning, df_fixed_costs, df_learning_costs = self.stats_of(run_id=run_id)
+
+            run_ax = ax
+
+            if len(run_ids) > 1:
+                run_ax = ax[run_index]
+
+            metric_index = 0
+
+            for metric_name in TIME_EVOLUTION_NAMES:
+                fixed_metric = df_fixed[metric_name]
+                learning_metric = df_learning[metric_name]
+
+                run_ax[metric_index].plot(fixed_metric, label='Fixed')
+                run_ax[metric_index].plot(learning_metric, label='Learning')
+
+                parameter_string = ""
+                for param in config:
+                    if param != "map":
+                        parameter_string += f"{param}: {config[param]} "
+
+                run_ax[metric_index].set_xlabel(f"Mappa: {config["map"]}\n" + parameter_string, fontweight='bold',
+                                                fontsize=10)
+                run_ax[metric_index].set_ylabel(TIME_METRICS[metric_name], fontweight='bold', fontsize=10)
+                run_ax[metric_index].legend()
+                metric_index += 1
+            run_index += 1
+        plt.show()
+
+    def show_real_vs_estimated_avg_costs(self, map_name, ax):
         run_ids = self.get_run_ids_from_map(map_name)
 
         barWidth = 0.25
 
+        i = 0
+        currentAx = ax
         for run_id in run_ids:
-            fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(6, 6))
+            if len(run_ids) > 1:
+                currentAx = ax[i]
             config, df_fixed, df_learning, df_fixed_costs, df_learning_costs = self.stats_of(run_id=run_id)
             fixed_estimated_avg = np.mean(df_fixed_costs["estimated"])
             learning_estimated_avg = np.mean(df_learning_costs["estimated"])
@@ -183,22 +213,42 @@ class StatsVisualizer:
             bar0 = np.arange(2)  # fixed estimated/real
             bar1 = [x + barWidth for x in bar0]  # learning estimated/real
 
-            ax.bar(bar0, [fixed_estimated_avg, fixed_real_avg], color='r', width=barWidth,
-                   edgecolor='grey', label='Fixed')
-            ax.bar(bar1, [learning_estimated_avg, learning_real_avg], color='g', width=barWidth,
-                   edgecolor='grey', label='Learning')
+            currentAx.bar(bar0, [fixed_estimated_avg, fixed_real_avg], color='r', width=barWidth,
+                          edgecolor='grey', label='Fixed')
+            currentAx.bar(bar1, [learning_estimated_avg, learning_real_avg], color='g', width=barWidth,
+                          edgecolor='grey', label='Learning')
 
-            for bars in ax.containers:
-                ax.bar_label(bars)
+            for bars in currentAx.containers:
+                currentAx.bar_label(bars)
 
             parameter_string = ""
             for param in config:
                 if param != "map":
                     parameter_string += f"{param}: {config[param]} "
 
-            plt.xlabel(f"Mappa: {config["map"]}\n" + parameter_string, fontweight='bold', fontsize=8)
-            plt.ylabel("Average Cost", fontweight='bold', fontsize=8)
-            plt.xticks([r + barWidth / 2 for r in range(2)],
-                       ["Estimated", "Real"])
-            plt.legend()
-            plt.show()
+            currentAx.set_xlabel(f"Mappa: {config["map"]}\n" + parameter_string, fontweight='bold', fontsize=10)
+            currentAx.set_ylabel("Average Cost", fontweight='bold', fontsize=10)
+            currentAx.set_xticks([r + barWidth / 2 for r in range(2)],
+                                 ["Estimated", "Real"])
+            currentAx.legend()
+            i += 1
+        plt.show()
+
+    def show_all_metrics(self, map_name):
+        width_coefficient = 6
+        height_coefficient = 6
+        run_ids = self.get_run_ids_from_map(map_name)
+        double_bar_rows = 2
+
+        fig, ax = plt.subplots(nrows=double_bar_rows, ncols=int(len(TIME_METRIC_NAMES) / double_bar_rows),
+                               figsize=(width_coefficient * int(len(TIME_METRIC_NAMES) / double_bar_rows),
+                                        height_coefficient * double_bar_rows))
+        self.show_double_bar_time_metric(map_name, ax, row_number=double_bar_rows)
+
+        fig, ax = plt.subplots(nrows=len(run_ids), ncols=len(TIME_EVOLUTION_NAMES), figsize=(
+            width_coefficient * len(TIME_EVOLUTION_NAMES), height_coefficient * len(run_ids)))
+        self.show_metric_evolution(map_name, ax)
+
+        fig, ax = plt.subplots(nrows=1, ncols=len(run_ids),
+                               figsize=(width_coefficient * len(run_ids), height_coefficient))
+        self.show_real_vs_estimated_avg_costs(map_name, ax)
