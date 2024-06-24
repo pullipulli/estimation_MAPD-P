@@ -136,6 +136,6 @@ dmypy.json
 
 *.csv
 
-*.png
+all_results.json
 
 output.yaml

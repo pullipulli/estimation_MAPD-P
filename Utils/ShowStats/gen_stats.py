@@ -96,6 +96,13 @@ def check_collisions(simulation: SimulationNewRecovery):
     print("Switch collisions: ", switchCollisions)
 
 
+def check_positive(value):
+    ivalue = int(value)
+    if ivalue <= 0:
+        raise argparse.ArgumentTypeError("%s is an invalid positive int value" % value)
+    return ivalue
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-preemption_distance', help='Maximum distance to be part of the preemption zone',
@@ -115,6 +122,15 @@ if __name__ == '__main__':
     parser.add_argument('-update_td_every_t', help='A integer >= 0 that changes how many time-steps should pass before '
                                                    'the simulation notify the task distribution changes to their '
                                                    'observers', default=15, type=int)
+    parser.add_argument('-agents', help='Maximum number of agents > 0. If the map can contain less than this number, the '
+                                        'number of agents is the number of agents supported by the map',
+                        type=check_positive, default=100)
+    parser.add_argument('-starts', help='Maximum number of starts > 0. If the map can contain less than this number, the '
+                                       'number of starts is the number of start supported by the map',
+                        type=check_positive, default=100)
+    parser.add_argument('-goals', help='Maximum number of goals > 0. If the map can contain less than this number, the '
+                                       'number of goals is the number of goals supported by the map',
+                        type=check_positive, default=100)
     args = parser.parse_args()
 
     number_of_tasks = args.tasks
@@ -132,6 +148,27 @@ if __name__ == '__main__':
         except yaml.YAMLError as exc:
             print(exc)
 
+    goal_locations = param['map']['goal_locations']
+    start_locations = param['map']['start_locations']
+
+    total_goals = len(goal_locations)
+    total_starts = len(start_locations)
+
+    goal_number = min(args.goals, len(param['map']['goal_locations']))
+    start_number = min(args.starts, len(param['map']['start_locations']))
+
+    # removing random n start from the list of start locations
+    starts_to_delete = set(random.sample(range(total_starts), total_starts - start_number))
+    start_locations = [start for startIndex, start in enumerate(start_locations) if startIndex not in starts_to_delete]
+
+    # removing random n goals from the list of goal locations
+    goals_to_delete = set(random.sample(range(total_goals), total_goals - goal_number))
+    goal_locations = [goal for goalIndex, goal in enumerate(goal_locations) if goalIndex not in goals_to_delete]
+
+    print("There are", len(start_locations), "start in the simulation.")
+    print("There are", len(goal_locations), "goals in the simulation.")
+
+
     dimensions = param['map']['dimensions']
     max_time = 10000
     dimensions = (dimensions[0], dimensions[1], max_time)
@@ -148,13 +185,13 @@ if __name__ == '__main__':
             tasks_now = number_of_tasks - total
         while tasks_now > 0:
             tasks_now -= 1
-            locations.append(random.choice(param['map']['start_locations']))
-        for start in param['map']['start_locations']:
+            locations.append(random.choice(start_locations))
+        for start in start_locations:
             if start in locations:
                 probability = 1.0
                 task_distribution[tuple(start)] = probability
                 total += 1
-                goal = random.choice(param['map']['goal_locations'])
+                goal = random.choice(goal_locations)
                 tasks.append(
                     {'start_time': time, 'start': start, 'goal': goal,
                      'task_name': 'task' + str(total)})
@@ -170,8 +207,11 @@ if __name__ == '__main__':
     agents = param['agents']
     param['tasks'] = tasks
 
+    total_agents = len(agents)
+    agents_number = min(args.agents, total_agents)
+
     # removing random n agents from the list of agents
-    agents_to_delete = set(random.sample(range(len(agents)), 0))
+    agents_to_delete = set(random.sample(range(total_agents), total_agents - agents_number))
     agents = [agent for agentIndex, agent in enumerate(agents) if agentIndex not in agents_to_delete]
 
     print("There are", len(agents), "agents in the simulation.")
@@ -181,7 +221,7 @@ if __name__ == '__main__':
     simulation = SimulationNewRecovery(tasks, agents, task_distributions, True,
                                        args.update_td_every_t, last_task_time)
     tp = TokenPassingRecovery(agents, dimensions, max_time, obstacles, non_task_endpoints, simulation,
-                              param['map']['start_locations'],
+                              start_locations,
                               a_star_max_iter=args.a_star_max_iter, path_1_modified=True,
                               path_2_modified=True,
                               preemption_radius=args.preemption_distance,
@@ -227,7 +267,7 @@ if __name__ == '__main__':
     simulation = SimulationNewRecovery(tasks, agents, task_distributions, False,
                                        args.update_td_every_t, last_task_time)
     tp = TokenPassingRecovery(agents, dimensions, max_time, obstacles, non_task_endpoints, simulation,
-                              param['map']['start_locations'],
+                              start_locations,
                               a_star_max_iter=args.a_star_max_iter, path_1_modified=True,
                               path_2_modified=True,
                               preemption_radius=args.preemption_distance,
