@@ -181,6 +181,8 @@ class StatsVisualizer:
 
                 if metric_name != "earth_mover_dist":
                     run_ax[metric_index].plot(fixed_metric, label='Fixed')
+                else:
+                    run_ax[metric_index].set_ylim(0, 0.6)
                 run_ax[metric_index].plot(learning_metric, label='Learning')
 
                 parameter_string = ""

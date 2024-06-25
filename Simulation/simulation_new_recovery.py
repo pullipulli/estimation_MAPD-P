@@ -1,3 +1,4 @@
+import math
 import random
 import time
 
@@ -115,9 +116,10 @@ class SimulationNewRecovery(Observable):
     def get_earth_mover_distance(self):
         learned_td = list(self.get_learned_task_distribution().values())
         fixed_td = list(self.get_fixed_task_distribution_at_t(self.time).values())
+        # TODO serve che la task distribution fissa sia sulle frequenze relative (come la learned)
 
         if len(fixed_td) == 0 and len(learned_td) == 0:
-            return 0
+            return math.inf
 
         for location in learned_td:
             # fill the gaps between the two distributions
