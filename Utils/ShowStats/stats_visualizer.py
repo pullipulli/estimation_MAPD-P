@@ -3,14 +3,15 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import math
 
-TIME_METRIC_NAMES = ["costs", "serv_times", "pickup_to_goal_times", "start_to_pickup_times", "runtimes", "makespans"]
+TIME_METRIC_NAMES = ["costs", "serv_times", "pickup_to_goal_times", "start_to_pickup_times", "runtimes", "makespans", "earth_mover_dist"]
 TIME_METRIC_LABELS = ["Costs per Task", "Service Times", "Pickup to Goal Times", "Start to Pickup Times", "Runtimes",
-                      "Makespans"]
+                      "Makespans", "Earth Mover Distance"]
 
 TIME_METRICS = dict(zip(TIME_METRIC_NAMES, TIME_METRIC_LABELS))
 
-TIME_EVOLUTION_NAMES = ["serv_times", "pickup_to_goal_times", "start_to_pickup_times", "runtimes"]
+TIME_EVOLUTION_NAMES = ["serv_times", "pickup_to_goal_times", "start_to_pickup_times", "runtimes", "earth_mover_dist"]
 
 
 class StatsVisualizer:
@@ -57,14 +58,14 @@ class StatsVisualizer:
             "costs": fixed["costs"], "serv_times": fixed["serv_times"],
             "pickup_to_goal_times": fixed["pickup_to_goal_times"],
             "start_to_pickup_times": fixed["start_to_pickup_times"], "runtimes": fixed["runtimes"],
-            "makespans": time["fixed"]
+            "makespans": time["fixed"], "earth_mover_dist": fixed["earth_mover_dist"]
         }, index=time["fixed"])
 
         df_time_learning = pd.DataFrame({
             "costs": learning["costs"], "serv_times": learning["serv_times"],
             "pickup_to_goal_times": learning["pickup_to_goal_times"],
             "start_to_pickup_times": learning["start_to_pickup_times"], "runtimes": learning["runtimes"],
-            "makespans": time["learning"]
+            "makespans": time["learning"], "earth_mover_dist": learning["earth_mover_dist"]
         }, index=time["learning"])
 
         df_tasks_fixed = pd.DataFrame({
@@ -123,7 +124,7 @@ class StatsVisualizer:
         columnIndex = 0
         metric_index = 0
         for metric_name in TIME_METRIC_NAMES:
-            if metric_index == len(TIME_METRIC_NAMES) / row_number:
+            if metric_index == math.ceil(len(TIME_METRIC_NAMES) / row_number):
                 rowIndex += 1
                 columnIndex = 0
 
@@ -178,7 +179,8 @@ class StatsVisualizer:
                 fixed_metric = df_fixed[metric_name]
                 learning_metric = df_learning[metric_name]
 
-                run_ax[metric_index].plot(fixed_metric, label='Fixed')
+                if metric_name != "earth_mover_dist":
+                    run_ax[metric_index].plot(fixed_metric, label='Fixed')
                 run_ax[metric_index].plot(learning_metric, label='Learning')
 
                 parameter_string = ""
@@ -240,8 +242,8 @@ class StatsVisualizer:
         run_ids = self.get_run_ids_from_map(map_name)
         double_bar_rows = 2
 
-        fig, ax = plt.subplots(nrows=double_bar_rows, ncols=int(len(TIME_METRIC_NAMES) / double_bar_rows),
-                               figsize=(width_coefficient * int(len(TIME_METRIC_NAMES) / double_bar_rows),
+        fig, ax = plt.subplots(nrows=double_bar_rows, ncols=math.ceil(len(TIME_METRIC_NAMES) / double_bar_rows),
+                               figsize=(width_coefficient * math.ceil(len(TIME_METRIC_NAMES) / double_bar_rows),
                                         height_coefficient * double_bar_rows))
         self.show_double_bar_time_metric(map_name, ax, row_number=double_bar_rows)
 

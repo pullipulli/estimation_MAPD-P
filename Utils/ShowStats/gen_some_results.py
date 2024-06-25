@@ -51,13 +51,14 @@ class GenerateResults:
                            token_passing: TokenPassingRecovery):
         if running_simulation.time == 1:
             return {"costs": [0], "serv_times": [0], "start_to_pickup_times": [0], "pickup_to_goal_times": [0],
-                    "runtimes": [actual_runtime], "number_of_tasks": len(running_simulation.tasks)}
+                    "runtimes": [actual_runtime], "earth_mover_dist": [running_simulation.get_earth_mover_distance()], "number_of_tasks": len(running_simulation.tasks)}
         else:
             pickup_to_goal_avgs = old_stats["pickup_to_goal_times"]
             start_to_pickup_avgs = old_stats["start_to_pickup_times"]
             serv_times = old_stats["serv_times"]
             runtimes = old_stats["runtimes"]
             costs = old_stats["costs"]
+            earth_mover_distance = old_stats["earth_mover_dist"]
 
             cost = 0
             for path in running_simulation.actual_paths.values():
@@ -103,9 +104,10 @@ class GenerateResults:
             serv_times.append(mean(start_to_goal_times))
             runtimes.append(actual_runtime)
             costs.append(cost)
+            earth_mover_distance.append(running_simulation.get_earth_mover_distance())
 
             return {"costs": costs, "serv_times": serv_times, "start_to_pickup_times": start_to_pickup_avgs,
-                    "pickup_to_goal_times": pickup_to_goal_avgs, "runtimes": runtimes,
+                    "pickup_to_goal_times": pickup_to_goal_avgs, "runtimes": runtimes, "earth_mover_dist": earth_mover_distance,
                     "number_of_tasks": len(running_simulation.tasks)}
 
     def generate_output_map(self, map):

@@ -108,6 +108,8 @@ class SimulationNewRecovery(Observable):
         return freq_task_distribution
 
     def get_fixed_task_distribution_at_t(self, t) -> TaskDistribution:
+        if len(self.task_distribution) < t + 1:
+            return dict()
         return dict(self.task_distribution[t])
 
     def get_earth_mover_distance(self):
