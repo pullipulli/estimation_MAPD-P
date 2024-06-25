@@ -1,13 +1,17 @@
 import random
 import time
 
+import numpy as np
+
 from Utils.observer_pattern import Observable
 from Utils.type_checking import TaskDistribution, Task, Agent, Time
+from pyemd import emd_samples
 
 
 class SimulationNewRecovery(Observable):
 
-    def __init__(self, tasks: list[Task], agents: list[Agent], task_distributions: list[TaskDistribution] = None, learn_task_distribution=False,
+    def __init__(self, tasks: list[Task], agents: list[Agent], task_distributions: list[TaskDistribution] = None,
+                 learn_task_distribution=False,
                  update_time=30, last_task_time=10000):
         super().__init__()
         self.last_task_time = last_task_time
@@ -22,6 +26,7 @@ class SimulationNewRecovery(Observable):
         self.agents_moved = set()
         self.actual_paths = {}
         self.algo_time = 0
+        self.prova = 0
         self.initialize_simulation()
 
     def initialize_simulation(self):
@@ -104,3 +109,17 @@ class SimulationNewRecovery(Observable):
 
     def get_fixed_task_distribution_at_t(self, t) -> TaskDistribution:
         return dict(self.task_distribution[t])
+
+    def get_earth_mover_distance(self):
+        learned_td = list(self.get_learned_task_distribution().values())
+        fixed_td = list(self.get_fixed_task_distribution_at_t(self.time).values())
+
+        if len(fixed_td) == 0 and len(learned_td) == 0:
+            return 0
+
+        for location in learned_td:
+            # fill the gaps between the two distributions
+            if location not in fixed_td:
+                fixed_td.append(0)
+
+        return emd_samples(learned_td, fixed_td)
