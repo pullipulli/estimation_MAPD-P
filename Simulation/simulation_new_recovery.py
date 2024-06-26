@@ -2,11 +2,10 @@ import math
 import random
 import time
 
-import numpy as np
+from scipy.stats import wasserstein_distance
 
 from Utils.observer_pattern import Observable
 from Utils.type_checking import TaskDistribution, Task, Agent, Time
-from pyemd import emd_samples
 
 
 class SimulationNewRecovery(Observable):
@@ -27,7 +26,6 @@ class SimulationNewRecovery(Observable):
         self.agents_moved = set()
         self.actual_paths = {}
         self.algo_time = 0
-        self.prova = 0
         self.initialize_simulation()
 
     def initialize_simulation(self):
@@ -109,21 +107,19 @@ class SimulationNewRecovery(Observable):
         return freq_task_distribution
 
     def get_fixed_task_distribution_at_t(self, t) -> TaskDistribution:
-        if len(self.task_distribution) < t + 1:
+        if len(self.task_distribution) <= t:
             return dict()
+
         return dict(self.task_distribution[t])
 
     def get_earth_mover_distance(self):
-        learned_td = list(self.get_learned_task_distribution().values())
-        fixed_td = list(self.get_fixed_task_distribution_at_t(self.time).values())
-        # TODO serve che la task distribution fissa sia sulle frequenze relative (come la learned)
+        learned_td = self.get_learned_task_distribution()
+        fixed_td = self.get_fixed_task_distribution_at_t(self.time)
 
-        if len(fixed_td) == 0 and len(learned_td) == 0:
+        if len(learned_td) == 0:
             return math.inf
 
-        for location in learned_td:
-            # fill the gaps between the two distributions
-            if location not in fixed_td:
-                fixed_td.append(0)
+        fixed_td = [fixed_td[k] if k in fixed_td else 0 for k in learned_td]
+        learned_td = list(self.get_learned_task_distribution().values())
 
-        return emd_samples(learned_td, fixed_td)
+        return wasserstein_distance(fixed_td, learned_td)

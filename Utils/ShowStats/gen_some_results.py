@@ -254,6 +254,7 @@ class GenerateResults:
         stats['estimated_costs'] = tp.get_estimated_task_costs()
         stats['real_costs'] = tp.get_real_task_costs()
         stats['map_name'] = map_name
+        stats['last_task_time'] = last_task_time
 
         return stats
 
