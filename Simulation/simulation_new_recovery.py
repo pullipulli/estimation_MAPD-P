@@ -101,8 +101,7 @@ class SimulationNewRecovery(Observable):
         freq_task_distribution = dict()
 
         for task in self.learned_task_distribution:
-            freq_task_distribution[task] = self.learned_task_distribution[task] / len(
-                self.learned_task_distribution)
+            freq_task_distribution[task] = self.learned_task_distribution[task] / self.get_number_of_assigned_tasks()
 
         return freq_task_distribution
 
@@ -112,14 +111,22 @@ class SimulationNewRecovery(Observable):
 
         return dict(self.task_distribution[t])
 
+    def get_number_of_assigned_tasks(self):
+        return sum(self.learned_task_distribution.values())
+
     def get_earth_mover_distance(self):
         learned_td = self.get_learned_task_distribution()
         fixed_td = self.get_fixed_task_distribution_at_t(self.time)
+        fixed_tasks_at_t = sum(fixed_td.values())
 
         if len(learned_td) == 0:
             return math.inf
 
-        fixed_td = [fixed_td[k] if k in fixed_td else 0 for k in learned_td]
+        fixed_td = [fixed_td[k]/fixed_tasks_at_t if k in fixed_td else 0 for k in learned_td]
         learned_td = list(self.get_learned_task_distribution().values())
+
+        # TODO Check if fixed task distribution is valid (sum of probabilities is 1) (if needed)
+        #if sum(fixed_td) != 1 or sum(learned_td) != 1:
+        #    return math.inf
 
         return wasserstein_distance(fixed_td, learned_td)
