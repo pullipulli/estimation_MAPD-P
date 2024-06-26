@@ -3,14 +3,18 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import math
 
-TIME_METRIC_NAMES = ["costs", "serv_times", "pickup_to_goal_times", "start_to_pickup_times", "runtimes", "makespans"]
+TIME_METRIC_NAMES = ["costs", "serv_times", "pickup_to_goal_times", "start_to_pickup_times", "runtimes", "makespans",
+                     "earth_mover_dist"]
 TIME_METRIC_LABELS = ["Costs per Task", "Service Times", "Pickup to Goal Times", "Start to Pickup Times", "Runtimes",
-                      "Makespans"]
+                      "Makespans", "Earth Mover Distance"]
+MAX_TASK_TIME_NAMES = ["earth_mover_dist"]
+ONLY_LEARNING_TIME_NAMES = ["earth_mover_dist"]
 
 TIME_METRICS = dict(zip(TIME_METRIC_NAMES, TIME_METRIC_LABELS))
 
-TIME_EVOLUTION_NAMES = ["serv_times", "pickup_to_goal_times", "start_to_pickup_times", "runtimes"]
+TIME_EVOLUTION_NAMES = ["serv_times", "pickup_to_goal_times", "start_to_pickup_times", "runtimes", "earth_mover_dist"]
 
 
 class StatsVisualizer:
@@ -57,14 +61,14 @@ class StatsVisualizer:
             "costs": fixed["costs"], "serv_times": fixed["serv_times"],
             "pickup_to_goal_times": fixed["pickup_to_goal_times"],
             "start_to_pickup_times": fixed["start_to_pickup_times"], "runtimes": fixed["runtimes"],
-            "makespans": time["fixed"]
+            "makespans": time["fixed"], "earth_mover_dist": fixed["earth_mover_dist"]
         }, index=time["fixed"])
 
         df_time_learning = pd.DataFrame({
             "costs": learning["costs"], "serv_times": learning["serv_times"],
             "pickup_to_goal_times": learning["pickup_to_goal_times"],
             "start_to_pickup_times": learning["start_to_pickup_times"], "runtimes": learning["runtimes"],
-            "makespans": time["learning"]
+            "makespans": time["learning"], "earth_mover_dist": learning["earth_mover_dist"]
         }, index=time["learning"])
 
         df_tasks_fixed = pd.DataFrame({
@@ -83,7 +87,8 @@ class StatsVisualizer:
 
         config = {
             "agents": fixed["agents"], "tasks": fixed["tasks"], "map": fixed["map_name"],
-            "pickup": fixed["pickup"], "goal": fixed["goal"], "task_frequency": fixed["task_frequency"]
+            "pickup": fixed["pickup"], "goal": fixed["goal"], "task_frequency": fixed["task_frequency"],
+            "last_task_time": max(fixed["last_task_time"], learning["last_task_time"])
         }
 
         return config, df_time_fixed, df_time_learning, df_tasks_fixed, df_tasks_learning
@@ -123,7 +128,7 @@ class StatsVisualizer:
         columnIndex = 0
         metric_index = 0
         for metric_name in TIME_METRIC_NAMES:
-            if metric_index == len(TIME_METRIC_NAMES) / row_number:
+            if metric_index == math.ceil(len(TIME_METRIC_NAMES) / row_number):
                 rowIndex += 1
                 columnIndex = 0
 
@@ -135,9 +140,9 @@ class StatsVisualizer:
             bar1 = [x + barWidth for x in bar0]
 
             ax[rowIndex][columnIndex].bar(bar0, fixed_metric[metric_name], color='r', width=barWidth,
-                                           edgecolor='grey', label='Fixed')
+                                          edgecolor='grey', label='Fixed')
             ax[rowIndex][columnIndex].bar(bar1, learning_metric[metric_name], color='g', width=barWidth,
-                                           edgecolor='grey', label='Learning')
+                                          edgecolor='grey', label='Learning')
 
             for bars in ax[rowIndex][columnIndex].containers:
                 ax[rowIndex][columnIndex].bar_label(bars)
@@ -145,15 +150,15 @@ class StatsVisualizer:
             parameter_string = ""
             for param in config:
                 if param != variable_param and param != "map":
-                    parameter_string += f"{param}: {config[param]} "
+                    parameter_string += f"{param}: {config[param]}, "
             parameter_string += '\n'
             variable_string = f"Possible values of {variable_param}: {possible_variable_num}"
 
             ax[rowIndex][columnIndex].set_xlabel(f"Mappa: {config["map"]}\n" + parameter_string + variable_string,
-                                                  fontweight='bold', fontsize=8)
+                                                 fontweight='bold', fontsize=8)
             ax[rowIndex][columnIndex].set_ylabel(TIME_METRICS[metric_name], fontweight='bold', fontsize=8)
             ax[rowIndex][columnIndex].set_xticks([r + barWidth / 2 for r in range(len(possible_variable_num))],
-                                                  possible_variable_num)
+                                                 possible_variable_num)
             ax[rowIndex][columnIndex].legend()
             metric_index += 1
             columnIndex += 1
@@ -178,13 +183,21 @@ class StatsVisualizer:
                 fixed_metric = df_fixed[metric_name]
                 learning_metric = df_learning[metric_name]
 
-                run_ax[metric_index].plot(fixed_metric, label='Fixed')
+                if metric_name not in ONLY_LEARNING_TIME_NAMES:
+                    run_ax[metric_index].plot(fixed_metric, label='Fixed')
                 run_ax[metric_index].plot(learning_metric, label='Learning')
 
+                if metric_name in MAX_TASK_TIME_NAMES:
+                    run_ax[metric_index].set_xlim(0, config["last_task_time"] + 1)
+
                 parameter_string = ""
+                should_new_line = False
                 for param in config:
                     if param != "map":
-                        parameter_string += f"{param}: {config[param]} "
+                        parameter_string += f"{param}: {config[param]}, "
+                        if should_new_line:
+                            parameter_string += '\n'
+                        should_new_line = not should_new_line
 
                 run_ax[metric_index].set_xlabel(f"Mappa: {config["map"]}\n" + parameter_string, fontweight='bold',
                                                 fontsize=10)
@@ -221,10 +234,14 @@ class StatsVisualizer:
             for bars in currentAx.containers:
                 currentAx.bar_label(bars)
 
+            should_new_line = False
             parameter_string = ""
             for param in config:
                 if param != "map":
-                    parameter_string += f"{param}: {config[param]} "
+                    if should_new_line:
+                        parameter_string += '\n'
+                    parameter_string += f"{param}: {config[param]}, "
+                    should_new_line = not should_new_line
 
             currentAx.set_xlabel(f"Mappa: {config["map"]}\n" + parameter_string, fontweight='bold', fontsize=10)
             currentAx.set_ylabel("Average Cost", fontweight='bold', fontsize=10)
@@ -236,12 +253,12 @@ class StatsVisualizer:
 
     def show_all_metrics(self, map_name):
         width_coefficient = 6
-        height_coefficient = 6
+        height_coefficient = 7
         run_ids = self.get_run_ids_from_map(map_name)
         double_bar_rows = 2
 
-        fig, ax = plt.subplots(nrows=double_bar_rows, ncols=int(len(TIME_METRIC_NAMES) / double_bar_rows),
-                               figsize=(width_coefficient * int(len(TIME_METRIC_NAMES) / double_bar_rows),
+        fig, ax = plt.subplots(nrows=double_bar_rows, ncols=math.ceil(len(TIME_METRIC_NAMES) / double_bar_rows),
+                               figsize=(width_coefficient * math.ceil(len(TIME_METRIC_NAMES) / double_bar_rows),
                                         height_coefficient * double_bar_rows))
         self.show_double_bar_time_metric(map_name, ax, row_number=double_bar_rows)
 

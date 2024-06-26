@@ -1,5 +1,8 @@
+import math
 import random
 import time
+
+from scipy.stats import wasserstein_distance
 
 from Utils.observer_pattern import Observable
 from Utils.type_checking import TaskDistribution, Task, Agent, Time
@@ -7,7 +10,8 @@ from Utils.type_checking import TaskDistribution, Task, Agent, Time
 
 class SimulationNewRecovery(Observable):
 
-    def __init__(self, tasks: list[Task], agents: list[Agent], task_distributions: list[TaskDistribution] = None, learn_task_distribution=False,
+    def __init__(self, tasks: list[Task], agents: list[Agent], task_distributions: list[TaskDistribution] = None,
+                 learn_task_distribution=False,
                  update_time=30, last_task_time=10000):
         super().__init__()
         self.last_task_time = last_task_time
@@ -103,4 +107,19 @@ class SimulationNewRecovery(Observable):
         return freq_task_distribution
 
     def get_fixed_task_distribution_at_t(self, t) -> TaskDistribution:
+        if len(self.task_distribution) <= t:
+            return dict()
+
         return dict(self.task_distribution[t])
+
+    def get_earth_mover_distance(self):
+        learned_td = self.get_learned_task_distribution()
+        fixed_td = self.get_fixed_task_distribution_at_t(self.time)
+
+        if len(learned_td) == 0:
+            return math.inf
+
+        fixed_td = [fixed_td[k] if k in fixed_td else 0 for k in learned_td]
+        learned_td = list(self.get_learned_task_distribution().values())
+
+        return wasserstein_distance(fixed_td, learned_td)
