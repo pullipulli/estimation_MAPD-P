@@ -128,6 +128,7 @@ class StatsVisualizer:
         columnIndex = 0
         metric_index = 0
         for metric_name in TIME_METRIC_NAMES:
+            number_of_bars_per_group = 2
             if metric_index == math.ceil(len(TIME_METRIC_NAMES) / row_number):
                 rowIndex += 1
                 columnIndex = 0
@@ -139,8 +140,12 @@ class StatsVisualizer:
             bar0 = np.arange(len(fixed_metric[metric_name]))
             bar1 = [x + barWidth for x in bar0]
 
-            ax[rowIndex][columnIndex].bar(bar0, fixed_metric[metric_name], color='r', width=barWidth,
-                                          edgecolor='grey', label='Fixed')
+            if metric_name in ONLY_LEARNING_TIME_NAMES:
+                number_of_bars_per_group = 1
+
+            if metric_name not in ONLY_LEARNING_TIME_NAMES:
+                ax[rowIndex][columnIndex].bar(bar0, fixed_metric[metric_name], color='r', width=barWidth,
+                                              edgecolor='grey', label='Fixed')
             ax[rowIndex][columnIndex].bar(bar1, learning_metric[metric_name], color='g', width=barWidth,
                                           edgecolor='grey', label='Learning')
 
@@ -157,9 +162,10 @@ class StatsVisualizer:
             ax[rowIndex][columnIndex].set_xlabel(f"Mappa: {config["map"]}\n" + parameter_string + variable_string,
                                                  fontweight='bold', fontsize=8)
             ax[rowIndex][columnIndex].set_ylabel(TIME_METRICS[metric_name], fontweight='bold', fontsize=8)
-            ax[rowIndex][columnIndex].set_xticks([r + barWidth / 2 for r in range(len(possible_variable_num))],
+            ax[rowIndex][columnIndex].set_xticks([r + barWidth / number_of_bars_per_group for r in range(len(possible_variable_num))],
                                                  possible_variable_num)
-            ax[rowIndex][columnIndex].legend()
+            if number_of_bars_per_group > 1:
+                ax[rowIndex][columnIndex].legend()
             metric_index += 1
             columnIndex += 1
         plt.show()
