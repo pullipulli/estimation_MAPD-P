@@ -144,13 +144,15 @@ class StatsVisualizer:
                 number_of_bars_per_group = 1
 
             if metric_name not in ONLY_LEARNING_TIME_NAMES:
-                ax[rowIndex][columnIndex].bar(bar0, fixed_metric[metric_name], color='r', width=barWidth,
+                ax[rowIndex][columnIndex].barh(bar0, fixed_metric[metric_name], color='r', height=barWidth,
                                               edgecolor='grey', label='Fixed')
-            ax[rowIndex][columnIndex].bar(bar1, learning_metric[metric_name], color='g', width=barWidth,
+            ax[rowIndex][columnIndex].barh(bar1, learning_metric[metric_name], color='g', height=barWidth,
                                           edgecolor='grey', label='Learning')
 
             for bars in ax[rowIndex][columnIndex].containers:
-                ax[rowIndex][columnIndex].bar_label(bars)
+                ax[rowIndex][columnIndex].bar_label(bars, label_type="center", color='w')
+
+            ax[rowIndex][columnIndex].invert_yaxis()
 
             parameter_string = ""
             for param in config:
@@ -159,10 +161,11 @@ class StatsVisualizer:
             parameter_string += '\n'
             variable_string = f"Possible values of {variable_param}: {possible_variable_num}"
 
-            ax[rowIndex][columnIndex].set_xlabel(f"Mappa: {config["map"]}\n" + parameter_string + variable_string,
-                                                 fontweight='bold', fontsize=8)
-            ax[rowIndex][columnIndex].set_ylabel(TIME_METRICS[metric_name], fontweight='bold', fontsize=8)
-            ax[rowIndex][columnIndex].set_xticks([r + barWidth / number_of_bars_per_group for r in range(len(possible_variable_num))],
+            ax[rowIndex][columnIndex].set_title(f"Mappa: {config["map"]}\n" + parameter_string,
+                                                 fontweight='bold', fontsize=9)
+            ax[rowIndex][columnIndex].set_ylabel(variable_string, fontweight='bold', fontsize=9)
+            ax[rowIndex][columnIndex].set_xlabel(TIME_METRICS[metric_name], fontweight='bold', fontsize=9)
+            ax[rowIndex][columnIndex].set_yticks([r + barWidth / number_of_bars_per_group for r in range(len(possible_variable_num))],
                                                  possible_variable_num)
             if number_of_bars_per_group > 1:
                 ax[rowIndex][columnIndex].legend()
@@ -205,9 +208,10 @@ class StatsVisualizer:
                             parameter_string += '\n'
                         should_new_line = not should_new_line
 
-                run_ax[metric_index].set_xlabel(f"Mappa: {config["map"]}\n" + parameter_string, fontweight='bold',
-                                                fontsize=10)
-                run_ax[metric_index].set_ylabel(TIME_METRICS[metric_name], fontweight='bold', fontsize=10)
+                run_ax[metric_index].set_title(f"Mappa: {config["map"]}\n" + parameter_string, fontweight='bold',
+                                                fontsize=9)
+                run_ax[metric_index].set_xlabel("Time", fontweight='bold', fontsize=9)
+                run_ax[metric_index].set_ylabel(TIME_METRICS[metric_name], fontweight='bold', fontsize=9)
                 run_ax[metric_index].legend()
                 metric_index += 1
             run_index += 1
@@ -238,7 +242,7 @@ class StatsVisualizer:
                           edgecolor='grey', label='Learning')
 
             for bars in currentAx.containers:
-                currentAx.bar_label(bars)
+                currentAx.bar_label(bars, rotation="vertical", label_type="center", color='w')
 
             should_new_line = False
             parameter_string = ""
@@ -249,8 +253,8 @@ class StatsVisualizer:
                     parameter_string += f"{param}: {config[param]}, "
                     should_new_line = not should_new_line
 
-            currentAx.set_xlabel(f"Mappa: {config["map"]}\n" + parameter_string, fontweight='bold', fontsize=10)
-            currentAx.set_ylabel("Average Cost", fontweight='bold', fontsize=10)
+            currentAx.set_title(f"Mappa: {config["map"]}\n" + parameter_string, fontweight='bold', fontsize=9)
+            currentAx.set_ylabel("Average Cost", fontweight='bold', fontsize=9)
             currentAx.set_xticks([r + barWidth / 2 for r in range(2)],
                                  ["Estimated", "Real"])
             currentAx.legend()
@@ -258,7 +262,7 @@ class StatsVisualizer:
         plt.show()
 
     def show_all_metrics(self, map_name):
-        width_coefficient = 6
+        width_coefficient = 7
         height_coefficient = 7
         run_ids = self.get_run_ids_from_map(map_name)
         double_bar_rows = 2
