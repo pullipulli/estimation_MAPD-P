@@ -28,7 +28,7 @@ class SimulationNewRecovery(Observable):
         self.actual_paths = {}
         self.algo_time = 0
         self.agents_at_distance_at_t = []
-        self.max_distance_traffic = 10 #TODO parameterize
+        self.max_distance_traffic = 5 #TODO parameterize
         self.initialize_simulation()
 
     def initialize_simulation(self):
@@ -39,7 +39,7 @@ class SimulationNewRecovery(Observable):
         for agent1 in self.agents:
             for agent2 in self.agents:
                 if agent1['name'] != agent2['name']:
-                    distance = math.ceil(admissible_heuristic(agent1['start'], agent2['start']))
+                    distance = math.floor(admissible_heuristic(agent1['start'], agent2['start']))
                     if distance <= self.max_distance_traffic:
                         if distance not in self.agents_at_distance_at_t[0]:
                             self.agents_at_distance_at_t[0][distance] = 1
@@ -48,17 +48,7 @@ class SimulationNewRecovery(Observable):
 
     def time_forward(self, algorithm):
         self.time = self.time + 1
-
-        self.agents_at_distance_at_t.append(dict())
-        for agent1 in self.agents:
-            for agent2 in self.agents:
-                if agent1['name'] != agent2['name']:
-                    distance = math.ceil(admissible_heuristic(agent1['start'], agent2['start']))
-                    if distance <= self.max_distance_traffic:
-                        if distance not in self.agents_at_distance_at_t[self.time]:
-                            self.agents_at_distance_at_t[self.time][distance] = 1
-                        else:
-                            self.agents_at_distance_at_t[self.time][distance] += 1
+        print("Time: ", self.time)
 
         start_time = time.time()
         algorithm.time_forward()
@@ -91,6 +81,23 @@ class SimulationNewRecovery(Observable):
                 self.actual_paths[agent['name']].append(
                     {'t': self.time, 'x': current_agent_pos['x'], 'y': current_agent_pos['y']})
                 self.agents_cost += 1
+
+        self.agents_at_distance_at_t.append(dict())
+        for agent1 in self.agents:
+            for agent2 in self.agents:
+                if agent1['name'] != agent2['name']:
+                    agent1_pos = self.actual_paths[agent1['name']][-1]
+                    agent2_pos = self.actual_paths[agent2['name']][-1]
+                    distance = math.floor(admissible_heuristic((agent1_pos['x'], agent1_pos['y']),
+                                                               (agent2_pos['x'], agent2_pos['y'])))
+                    if distance <= self.max_distance_traffic:
+                        if distance not in self.agents_at_distance_at_t[self.time]:
+                            self.agents_at_distance_at_t[self.time][distance] = 1
+                        else:
+                            self.agents_at_distance_at_t[self.time][distance] += 1
+
+        for distance in self.agents_at_distance_at_t[self.time]:
+            self.agents_at_distance_at_t[self.time][distance] = math.floor(self.agents_at_distance_at_t[self.time][distance] / 2)   # couples of agents
 
         for task in self.get_new_tasks():
             start = task['start']

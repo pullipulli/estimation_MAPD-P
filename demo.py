@@ -122,7 +122,7 @@ if __name__ == '__main__':
 
         print("Earth Mover Distance: ", simulation.get_earth_mover_distance())
 
-    print(json.dumps(simulation.agents_at_distance_at_t, indent=4))
+    print(json.dumps(simulation.agents_at_distance_at_t, indent=4, sort_keys=True))
     print("Numero di agenti:", len(agents))
 
     cost = 0
