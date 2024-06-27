@@ -39,6 +39,9 @@ class StatsVisualizer:
         assert len(variable_params) == 1, "Only one parameter can be variable"
         self.variable_param = variable_params[0]
 
+        self.padding = 0
+        self.fontSize = 12
+
     def get_map_names(self):
         return self.map_names
 
@@ -145,9 +148,9 @@ class StatsVisualizer:
 
             if metric_name not in ONLY_LEARNING_TIME_NAMES:
                 ax[rowIndex][columnIndex].barh(bar0, fixed_metric[metric_name], color='r', height=barWidth,
-                                              edgecolor='grey', label='Fixed')
+                                               edgecolor='grey', label='Fixed')
             ax[rowIndex][columnIndex].barh(bar1, learning_metric[metric_name], color='g', height=barWidth,
-                                          edgecolor='grey', label='Learning')
+                                           edgecolor='grey', label='Learning')
 
             for bars in ax[rowIndex][columnIndex].containers:
                 ax[rowIndex][columnIndex].bar_label(bars, label_type="center", color='w')
@@ -159,18 +162,20 @@ class StatsVisualizer:
                 if param != variable_param and param != "map":
                     parameter_string += f"{param}: {config[param]}, "
             parameter_string += '\n'
-            variable_string = f"Possible values of {variable_param}: {possible_variable_num}"
+            variable_string = f"Possible values of {variable_param}"
 
             ax[rowIndex][columnIndex].set_title(f"Mappa: {config["map"]}\n" + parameter_string,
-                                                 fontweight='bold', fontsize=9)
-            ax[rowIndex][columnIndex].set_ylabel(variable_string, fontweight='bold', fontsize=9)
-            ax[rowIndex][columnIndex].set_xlabel(TIME_METRICS[metric_name], fontweight='bold', fontsize=9)
-            ax[rowIndex][columnIndex].set_yticks([r + barWidth / number_of_bars_per_group for r in range(len(possible_variable_num))],
-                                                 possible_variable_num)
+                                                fontweight='bold', fontsize=self.fontSize, pad=self.padding)
+            ax[rowIndex][columnIndex].set_ylabel(variable_string, fontweight='bold', fontsize=self.fontSize)
+            ax[rowIndex][columnIndex].set_xlabel(TIME_METRICS[metric_name], fontweight='bold', fontsize=self.fontSize)
+            ax[rowIndex][columnIndex].set_yticks(
+                [r + barWidth / number_of_bars_per_group for r in range(len(possible_variable_num))],
+                possible_variable_num)
             if number_of_bars_per_group > 1:
                 ax[rowIndex][columnIndex].legend()
             metric_index += 1
             columnIndex += 1
+        plt.tight_layout()
         plt.show()
 
     def show_metric_evolution(self, map_name, ax):
@@ -209,12 +214,13 @@ class StatsVisualizer:
                         should_new_line = not should_new_line
 
                 run_ax[metric_index].set_title(f"Mappa: {config["map"]}\n" + parameter_string, fontweight='bold',
-                                                fontsize=9)
-                run_ax[metric_index].set_xlabel("Time", fontweight='bold', fontsize=9)
-                run_ax[metric_index].set_ylabel(TIME_METRICS[metric_name], fontweight='bold', fontsize=9)
+                                               fontsize=self.fontSize, pad=self.padding)
+                run_ax[metric_index].set_xlabel("Time", fontweight='bold', fontsize=self.fontSize)
+                run_ax[metric_index].set_ylabel(TIME_METRICS[metric_name], fontweight='bold', fontsize=self.fontSize)
                 run_ax[metric_index].legend()
                 metric_index += 1
             run_index += 1
+        plt.tight_layout()
         plt.show()
 
     def show_real_vs_estimated_avg_costs(self, map_name, ax):
@@ -253,12 +259,13 @@ class StatsVisualizer:
                     parameter_string += f"{param}: {config[param]}, "
                     should_new_line = not should_new_line
 
-            currentAx.set_title(f"Mappa: {config["map"]}\n" + parameter_string, fontweight='bold', fontsize=9)
-            currentAx.set_ylabel("Average Cost", fontweight='bold', fontsize=9)
+            currentAx.set_title(f"Mappa: {config["map"]}\n" + parameter_string, fontweight='bold', fontsize=self.fontSize, pad=self.padding)
+            currentAx.set_ylabel("Average Cost", fontweight='bold', fontsize=self.fontSize)
             currentAx.set_xticks([r + barWidth / 2 for r in range(2)],
                                  ["Estimated", "Real"])
             currentAx.legend()
             i += 1
+        plt.tight_layout()
         plt.show()
 
     def show_all_metrics(self, map_name):
