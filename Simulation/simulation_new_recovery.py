@@ -4,6 +4,7 @@ import time
 
 from scipy.stats import wasserstein_distance
 
+from Simulation.TP_with_recovery import admissible_heuristic
 from Utils.observer_pattern import Observable
 from Utils.type_checking import TaskDistribution, Task, Agent, Time
 
@@ -26,14 +27,39 @@ class SimulationNewRecovery(Observable):
         self.agents_moved = set()
         self.actual_paths = {}
         self.algo_time = 0
+        self.agents_at_distance_at_t = []
+        self.max_distance_traffic = 10 #TODO parameterize
         self.initialize_simulation()
 
     def initialize_simulation(self):
         for agent in self.agents:
             self.actual_paths[agent['name']] = [{'t': 0, 'x': agent['start'][0], 'y': agent['start'][1]}]
 
+        self.agents_at_distance_at_t.append(dict())
+        for agent1 in self.agents:
+            for agent2 in self.agents:
+                if agent1['name'] != agent2['name']:
+                    distance = math.ceil(admissible_heuristic(agent1['start'], agent2['start']))
+                    if distance <= self.max_distance_traffic:
+                        if distance not in self.agents_at_distance_at_t[0]:
+                            self.agents_at_distance_at_t[0][distance] = 1
+                        else:
+                            self.agents_at_distance_at_t[0][distance] += 1
+
     def time_forward(self, algorithm):
         self.time = self.time + 1
+
+        self.agents_at_distance_at_t.append(dict())
+        for agent1 in self.agents:
+            for agent2 in self.agents:
+                if agent1['name'] != agent2['name']:
+                    distance = math.ceil(admissible_heuristic(agent1['start'], agent2['start']))
+                    if distance <= self.max_distance_traffic:
+                        if distance not in self.agents_at_distance_at_t[self.time]:
+                            self.agents_at_distance_at_t[self.time][distance] = 1
+                        else:
+                            self.agents_at_distance_at_t[self.time][distance] += 1
+
         start_time = time.time()
         algorithm.time_forward()
         self.algo_time += time.time() - start_time
