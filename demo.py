@@ -120,11 +120,6 @@ if __name__ == '__main__':
         final = datetime.datetime.now().timestamp()
         runtime = final - initialTime
 
-        print("Earth Mover Distance: ", simulation.get_earth_mover_distance())
-
-    print(json.dumps(simulation.agents_at_distance_at_t, indent=4, sort_keys=True))
-    print("Numero di agenti:", len(agents))
-
     cost = 0
     for path in simulation.actual_paths.values():
         cost = cost + len(path)
