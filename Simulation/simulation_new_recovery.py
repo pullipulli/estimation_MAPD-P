@@ -14,7 +14,7 @@ class SimulationNewRecovery(Observable):
 
     def __init__(self, tasks: list[Task], agents: list[Agent], task_distributions: list[TaskDistribution] = None,
                  learn_task_distribution=False,
-                 update_time=30, last_task_time=10000, max_time=10000):
+                 update_time=30, last_task_time=10000, max_time=10000, max_distance_traffic=5):
         super().__init__()
         self.last_task_time = last_task_time
         self.update_time = update_time
@@ -29,8 +29,8 @@ class SimulationNewRecovery(Observable):
         self.actual_paths = {}
         self.algo_time = 0
         self.max_time = max_time
-        self.max_distance_traffic = 5 #TODO parameterize
-        self.agents_at_distance_at_t = np.zeros((1, self.max_distance_traffic))  # TODO rename to traffic matrix
+        self.max_distance_traffic = max_distance_traffic
+        self.traffic_matrix = np.zeros((1, self.max_distance_traffic))
         self.initialize_simulation()
 
     def initialize_simulation(self):
@@ -84,7 +84,7 @@ class SimulationNewRecovery(Observable):
                     if distance <= self.max_distance_traffic:
                         newRow[distance-1] += 0.5    # couples of agents (so i need to add 2 0.5 to have 1 couple)
 
-        self.agents_at_distance_at_t = np.append(self.agents_at_distance_at_t, [newRow], axis=0)
+        self.traffic_matrix = np.append(self.traffic_matrix, [newRow], axis=0)
 
         for task in self.get_new_tasks():
             start = task['start']
@@ -144,9 +144,5 @@ class SimulationNewRecovery(Observable):
 
         fixed_td = [fixed_td[k]/fixed_tasks_at_t if k in fixed_td else 0 for k in learned_td]
         learned_td = list(self.get_learned_task_distribution().values())
-
-        # TODO Check if fixed task distribution is valid (sum of probabilities is 1) (if needed)
-        #if sum(fixed_td) != 1 or sum(learned_td) != 1:
-        #    return math.inf
 
         return wasserstein_distance(fixed_td, learned_td)

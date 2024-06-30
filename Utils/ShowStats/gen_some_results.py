@@ -246,7 +246,7 @@ class GenerateResults:
               "\n\tNumero task:", tasks_num, "\n\tTask frequency:", tasks_frequency, "\n\tLearning:", learning)
         GenerateResults.check_collisions(simulation)
 
-        stats['traffic'] = simulation.agents_at_distance_at_t.tolist()
+        stats['traffic'] = simulation.traffic_matrix.tolist()
         stats['agents'] = len(agents)
         stats['pickup'] = len(start_locations)
         stats['goal'] = len(goal_locations)
