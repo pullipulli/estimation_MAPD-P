@@ -170,7 +170,7 @@ class GenerateResults:
         goal_locations = [goal for goalIndex, goal in enumerate(goal_locations) if goalIndex not in goals_to_delete]
 
         dimensions = map_dict['map']['dimensions']
-        max_time = 10000
+        max_time = 100000
         dimensions = (dimensions[0], dimensions[1], max_time)
         task_distributions = [dict() for i in range(max_time)]
         tasks = []
@@ -216,7 +216,7 @@ class GenerateResults:
 
         print("Running Simulation...")
 
-        simulation = SimulationNewRecovery(tasks, agents, task_distributions, learning, 15, last_task_time)
+        simulation = SimulationNewRecovery(tasks, agents, task_distributions, learning, 15, last_task_time, max_time)
         tp = TokenPassingRecovery(agents, dimensions, max_time, obstacles, non_task_endpoints, simulation,
                                   start_locations,
                                   a_star_max_iter=80000, path_1_modified=True,
@@ -246,6 +246,7 @@ class GenerateResults:
               "\n\tNumero task:", tasks_num, "\n\tTask frequency:", tasks_frequency, "\n\tLearning:", learning)
         GenerateResults.check_collisions(simulation)
 
+        stats['traffic'] = simulation.agents_at_distance_at_t.tolist()
         stats['agents'] = len(agents)
         stats['pickup'] = len(start_locations)
         stats['goal'] = len(goal_locations)

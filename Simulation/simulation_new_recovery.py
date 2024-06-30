@@ -2,6 +2,7 @@ import math
 import random
 import time
 
+import numpy as np
 from scipy.stats import wasserstein_distance
 
 from Simulation.TP_with_recovery import admissible_heuristic
@@ -13,7 +14,7 @@ class SimulationNewRecovery(Observable):
 
     def __init__(self, tasks: list[Task], agents: list[Agent], task_distributions: list[TaskDistribution] = None,
                  learn_task_distribution=False,
-                 update_time=30, last_task_time=10000):
+                 update_time=30, last_task_time=10000, max_time=10000):
         super().__init__()
         self.last_task_time = last_task_time
         self.update_time = update_time
@@ -27,28 +28,17 @@ class SimulationNewRecovery(Observable):
         self.agents_moved = set()
         self.actual_paths = {}
         self.algo_time = 0
-        self.agents_at_distance_at_t = []
+        self.max_time = max_time
         self.max_distance_traffic = 5 #TODO parameterize
+        self.agents_at_distance_at_t = np.zeros((1, self.max_distance_traffic))  # TODO rename to traffic matrix
         self.initialize_simulation()
 
     def initialize_simulation(self):
         for agent in self.agents:
             self.actual_paths[agent['name']] = [{'t': 0, 'x': agent['start'][0], 'y': agent['start'][1]}]
 
-        self.agents_at_distance_at_t.append(dict())
-        for agent1 in self.agents:
-            for agent2 in self.agents:
-                if agent1['name'] != agent2['name']:
-                    distance = math.floor(admissible_heuristic(agent1['start'], agent2['start']))
-                    if distance <= self.max_distance_traffic:
-                        if distance not in self.agents_at_distance_at_t[0]:
-                            self.agents_at_distance_at_t[0][distance] = 1
-                        else:
-                            self.agents_at_distance_at_t[0][distance] += 1
-
     def time_forward(self, algorithm):
         self.time = self.time + 1
-        print("Time: ", self.time)
 
         start_time = time.time()
         algorithm.time_forward()
@@ -82,7 +72,8 @@ class SimulationNewRecovery(Observable):
                     {'t': self.time, 'x': current_agent_pos['x'], 'y': current_agent_pos['y']})
                 self.agents_cost += 1
 
-        self.agents_at_distance_at_t.append(dict())
+        newRow = [0] * self.max_distance_traffic
+
         for agent1 in self.agents:
             for agent2 in self.agents:
                 if agent1['name'] != agent2['name']:
@@ -91,13 +82,9 @@ class SimulationNewRecovery(Observable):
                     distance = math.floor(admissible_heuristic((agent1_pos['x'], agent1_pos['y']),
                                                                (agent2_pos['x'], agent2_pos['y'])))
                     if distance <= self.max_distance_traffic:
-                        if distance not in self.agents_at_distance_at_t[self.time]:
-                            self.agents_at_distance_at_t[self.time][distance] = 1
-                        else:
-                            self.agents_at_distance_at_t[self.time][distance] += 1
+                        newRow[distance-1] += 0.5    # couples of agents (so i need to add 2 0.5 to have 1 couple)
 
-        for distance in self.agents_at_distance_at_t[self.time]:
-            self.agents_at_distance_at_t[self.time][distance] = math.floor(self.agents_at_distance_at_t[self.time][distance] / 2)   # couples of agents
+        self.agents_at_distance_at_t = np.append(self.agents_at_distance_at_t, [newRow], axis=0)
 
         for task in self.get_new_tasks():
             start = task['start']
