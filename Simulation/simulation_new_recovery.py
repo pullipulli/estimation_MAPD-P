@@ -30,7 +30,7 @@ class SimulationNewRecovery(Observable):
         self.algo_time = 0
         self.max_time = max_time
         self.max_distance_traffic = max_distance_traffic
-        self.traffic_matrix = np.zeros((1, self.max_distance_traffic))
+        self.traffic_matrix = []
         self.initialize_simulation()
 
     def initialize_simulation(self):
@@ -84,7 +84,7 @@ class SimulationNewRecovery(Observable):
                     if distance < self.max_distance_traffic:
                         newRow[distance] += 0.5  # couples of agents (so we need to add 2 0.5 to have 1 couple)
 
-        self.traffic_matrix = np.append(self.traffic_matrix, [newRow], axis=0)
+        self.traffic_matrix.append(newRow)
 
         for task in self.get_new_tasks():
             start = task['start']

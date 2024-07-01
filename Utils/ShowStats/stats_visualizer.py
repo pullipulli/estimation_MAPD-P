@@ -82,11 +82,6 @@ class StatsVisualizer:
             "estimated": learning["estimated_costs"], "real": learning["real_costs"]
         })
 
-        traffic = {
-            "fixed": np.array(fixed["traffic"]),
-            "learning": np.array(learning["traffic"])
-        }
-
         assert fixed['agents'] == learning['agents'] and fixed['tasks'] == learning['tasks'] and fixed['map_name'] == \
                learning[
                    "map_name"] and fixed['task_frequency'] == learning['task_frequency'] and fixed['pickup'] == \
@@ -99,7 +94,7 @@ class StatsVisualizer:
             "last_task_time": max(fixed["last_task_time"], learning["last_task_time"])
         }
 
-        return config, df_time_fixed, df_time_learning, df_tasks_fixed, df_tasks_learning, traffic["fixed"], traffic["learning"]
+        return config, df_time_fixed, df_time_learning, df_tasks_fixed, df_tasks_learning, fixed["traffic"], learning["traffic"]
 
     def get_run_ids_from_map(self, map_name):
         run_ids = []
@@ -281,16 +276,24 @@ class StatsVisualizer:
             config, _, _, _, _, traffic_fixed, traffic_learning = self.stats_of(run_id=run_id)
             fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(14, 7))
 
-            im_fixed = ax[0].imshow(traffic_fixed.tolist(), cmap='hot', aspect='auto', interpolation='None')
+            im_fixed = ax[0].imshow(traffic_fixed, cmap='hot', aspect='auto', interpolation='None')
             ax[0].set_title("Fixed")
             ax[0].set_xlabel('Distance')
             ax[0].set_ylabel('Time')
+            labels = [item.get_text().replace('−', '-') for item in ax[0].get_xticklabels()]
+            labels = [int(item) + 1 for item in labels]
+            labels[-1] = ''
+            ax[0].set_xticks(ax[0].get_xticks(), labels)
             plt.colorbar(im_fixed, ax=ax[0])
 
-            im_learning = ax[1].imshow(traffic_learning.tolist(), cmap='hot', aspect='auto', interpolation='None')
+            im_learning = ax[1].imshow(traffic_learning, cmap='hot', aspect='auto', interpolation='None')
             ax[1].set_title("Learning")
             ax[1].set_xlabel('Distance')
             ax[1].set_ylabel('Time')
+            labels = [item.get_text().replace('−', '-') for item in ax[1].get_xticklabels()]
+            labels = [int(item) + 1 for item in labels]
+            labels[-1] = ''
+            ax[1].set_xticks(ax[1].get_xticks(), labels)
             plt.colorbar(im_learning, ax=ax[1])
 
             parameter_string = ""

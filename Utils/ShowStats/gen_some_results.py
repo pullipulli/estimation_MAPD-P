@@ -214,8 +214,6 @@ class GenerateResults:
         agents_to_delete = set(random.sample(range(total_agents), total_agents - agents_num))
         agents = [agent for agentIndex, agent in enumerate(agents) if agentIndex not in agents_to_delete]
 
-        print("Running Simulation...")
-
         simulation = SimulationNewRecovery(tasks, agents, task_distributions, learning, 15, last_task_time, max_time, max_distance_traffic=self.max_distance_traffic)
         tp = TokenPassingRecovery(agents, dimensions, max_time, obstacles, non_task_endpoints, simulation,
                                   start_locations,
@@ -230,6 +228,11 @@ class GenerateResults:
         start_to_pickup_times = []
         pickup_to_goal_times = []
 
+        print('Avvio Simulazione:', "\n\tNome Mappa:", map_name, "\n\tNumero Agenti:", len(agents),
+              "\n\tNumero pickup:", len(start_locations), "\n\tNumero goal:", len(goal_locations),
+              "\n\tNumero task:", tasks_num, "\n\tTask frequency:", tasks_frequency, "\n\tLearning:", learning)
+        GenerateResults.check_collisions(simulation)
+
         while tp.get_completed_tasks() != len(tasks):
             initialTime = datetime.datetime.now().timestamp()
 
@@ -241,12 +244,9 @@ class GenerateResults:
             stats = GenerateResults.memorize_run_stats(stats, start_to_goal_times, start_to_pickup_times, pickup_to_goal_times, runtime,
                                        simulation, tp)
 
-        print('Avvio Simulazione:', "\n\tNome Mappa:", map_name, "\n\tNumero Agenti:", len(agents),
-              "\n\tNumero pickup:", len(start_locations), "\n\tNumero goal:", len(goal_locations),
-              "\n\tNumero task:", tasks_num, "\n\tTask frequency:", tasks_frequency, "\n\tLearning:", learning)
-        GenerateResults.check_collisions(simulation)
+        print("Simulation finished")
 
-        stats['traffic'] = simulation.traffic_matrix.tolist()
+        stats['traffic'] = simulation.traffic_matrix
         stats['agents'] = len(agents)
         stats['pickup'] = len(start_locations)
         stats['goal'] = len(goal_locations)
