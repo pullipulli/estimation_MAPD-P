@@ -81,8 +81,8 @@ class SimulationNewRecovery(Observable):
                     agent2_pos = self.actual_paths[agent2['name']][-1]
                     distance = math.floor(admissible_heuristic((agent1_pos['x'], agent1_pos['y']),
                                                                (agent2_pos['x'], agent2_pos['y'])))
-                    if distance <= self.max_distance_traffic:
-                        newRow[distance-1] += 0.5    # couples of agents (so i need to add 2 0.5 to have 1 couple)
+                    if distance < self.max_distance_traffic:
+                        newRow[distance] += 0.5  # couples of agents (so we need to add 2 0.5 to have 1 couple)
 
         self.traffic_matrix = np.append(self.traffic_matrix, [newRow], axis=0)
 
@@ -142,7 +142,7 @@ class SimulationNewRecovery(Observable):
         if len(learned_td) == 0:
             return math.inf
 
-        fixed_td = [fixed_td[k]/fixed_tasks_at_t if k in fixed_td else 0 for k in learned_td]
+        fixed_td = [fixed_td[k] / fixed_tasks_at_t if k in fixed_td else 0 for k in learned_td]
         learned_td = list(self.get_learned_task_distribution().values())
 
         return wasserstein_distance(fixed_td, learned_td)
