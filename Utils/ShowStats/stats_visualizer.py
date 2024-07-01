@@ -64,14 +64,14 @@ class StatsVisualizer:
             "costs": fixed["costs"], "serv_times": fixed["serv_times"],
             "pickup_to_goal_times": fixed["pickup_to_goal_times"],
             "start_to_pickup_times": fixed["start_to_pickup_times"], "runtimes": fixed["runtimes"],
-            "makespans": time["fixed"], "earth_mover_dist": fixed["earth_mover_dist"]
+            "makespans": time["fixed"], "earth_mover_dist": fixed["earth_mover_dist"],
         }, index=time["fixed"])
 
         df_time_learning = pd.DataFrame({
             "costs": learning["costs"], "serv_times": learning["serv_times"],
             "pickup_to_goal_times": learning["pickup_to_goal_times"],
             "start_to_pickup_times": learning["start_to_pickup_times"], "runtimes": learning["runtimes"],
-            "makespans": time["learning"], "earth_mover_dist": learning["earth_mover_dist"]
+            "makespans": time["learning"], "earth_mover_dist": learning["earth_mover_dist"],
         }, index=time["learning"])
 
         df_tasks_fixed = pd.DataFrame({
@@ -94,7 +94,7 @@ class StatsVisualizer:
             "last_task_time": max(fixed["last_task_time"], learning["last_task_time"])
         }
 
-        return config, df_time_fixed, df_time_learning, df_tasks_fixed, df_tasks_learning
+        return config, df_time_fixed, df_time_learning, df_tasks_fixed, df_tasks_learning, fixed["traffic"], learning["traffic"]
 
     def get_run_ids_from_map(self, map_name):
         run_ids = []
@@ -115,7 +115,7 @@ class StatsVisualizer:
         variable_param = self.get_variable_config_parameter()
 
         for run_id in run_ids:
-            config, df_fixed, df_learning, df_fixed_costs, df_learning_costs = self.stats_of(run_id=run_id)
+            config, df_fixed, df_learning = self.stats_of(run_id=run_id)[0:3]
             for metric_name in TIME_METRIC_NAMES:
                 metric = df_fixed[metric_name].iloc[-1]
                 fixed_metric[metric_name].append(metric)
@@ -184,7 +184,7 @@ class StatsVisualizer:
         run_index = 0
 
         for run_id in run_ids:
-            config, df_fixed, df_learning, df_fixed_costs, df_learning_costs = self.stats_of(run_id=run_id)
+            config, df_fixed, df_learning = self.stats_of(run_id=run_id)[0:3]
 
             run_ax = ax
 
@@ -233,7 +233,7 @@ class StatsVisualizer:
         for run_id in run_ids:
             if len(run_ids) > 1:
                 currentAx = ax[i]
-            config, df_fixed, df_learning, df_fixed_costs, df_learning_costs = self.stats_of(run_id=run_id)
+            config, _, _, df_fixed_costs, df_learning_costs, _, _ = self.stats_of(run_id=run_id)
             fixed_estimated_avg = np.mean(df_fixed_costs["estimated"])
             learning_estimated_avg = np.mean(df_learning_costs["estimated"])
             fixed_real_avg = np.mean(df_fixed_costs["real"])
@@ -259,7 +259,8 @@ class StatsVisualizer:
                     parameter_string += f"{param}: {config[param]}, "
                     should_new_line = not should_new_line
 
-            currentAx.set_title(f"Mappa: {config["map"]}\n" + parameter_string, fontweight='bold', fontsize=self.fontSize, pad=self.padding)
+            currentAx.set_title(f"Mappa: {config["map"]}\n" + parameter_string, fontweight='bold',
+                                fontsize=self.fontSize, pad=self.padding)
             currentAx.set_ylabel("Average Cost", fontweight='bold', fontsize=self.fontSize)
             currentAx.set_xticks([r + barWidth / 2 for r in range(2)],
                                  ["Estimated", "Real"])
@@ -267,6 +268,43 @@ class StatsVisualizer:
             i += 1
         plt.tight_layout()
         plt.show()
+
+    def show_traffic_evolution(self, map_name):
+        run_ids = self.get_run_ids_from_map(map_name)
+
+        for run_id in run_ids:
+            config, _, _, _, _, traffic_fixed, traffic_learning = self.stats_of(run_id=run_id)
+            fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(14, 7))
+
+            im_fixed = ax[0].imshow(traffic_fixed, cmap='hot', aspect='auto', interpolation='None')
+            ax[0].set_title("Fixed")
+            ax[0].set_xlabel('Distance')
+            ax[0].set_ylabel('Time')
+            labels = [item.get_text().replace('−', '-') for item in ax[0].get_xticklabels()]
+            labels = [int(item) + 1 for item in labels]
+            labels[-1] = ''
+            ax[0].set_xticks(ax[0].get_xticks(), labels)
+            plt.colorbar(im_fixed, ax=ax[0])
+
+            im_learning = ax[1].imshow(traffic_learning, cmap='hot', aspect='auto', interpolation='None')
+            ax[1].set_title("Learning")
+            ax[1].set_xlabel('Distance')
+            ax[1].set_ylabel('Time')
+            labels = [item.get_text().replace('−', '-') for item in ax[1].get_xticklabels()]
+            labels = [int(item) + 1 for item in labels]
+            labels[-1] = ''
+            ax[1].set_xticks(ax[1].get_xticks(), labels)
+            plt.colorbar(im_learning, ax=ax[1])
+
+            parameter_string = ""
+            for param in config:
+                if param != "map":
+                    parameter_string += f"{param}: {config[param]}, "
+
+            fig.suptitle(f"Mappa: {config["map"]}\n" + parameter_string, fontweight='bold',
+                                fontsize=self.fontSize)
+
+            plt.show()
 
     def show_all_metrics(self, map_name):
         width_coefficient = 7
@@ -286,3 +324,5 @@ class StatsVisualizer:
         fig, ax = plt.subplots(nrows=1, ncols=len(run_ids),
                                figsize=(width_coefficient * len(run_ids), height_coefficient))
         self.show_real_vs_estimated_avg_costs(map_name, ax)
+
+        self.show_traffic_evolution(map_name)

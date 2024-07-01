@@ -18,7 +18,7 @@ from Simulation.simulation_new_recovery import SimulationNewRecovery
 
 
 class GenerateResults:
-    def __init__(self, maps, tasks_num, tasks_frequency, agents_num, start_num, goal_num):
+    def __init__(self, maps, tasks_num, tasks_frequency, agents_num, start_num, goal_num, max_distance_traffic):
         self.simulation_number = len(maps) * len(tasks_num) * len(agents_num) * len(start_num) * len(
             goal_num * len(tasks_frequency)) * 2
         self.maps = maps
@@ -27,6 +27,7 @@ class GenerateResults:
         self.agents_num = agents_num
         self.start_num = start_num
         self.goal_num = goal_num
+        self.max_distance_traffic = max_distance_traffic
         self.simulation_progress = 0
         self.maps_out = []
         self.run_ids = set()
@@ -149,8 +150,7 @@ class GenerateResults:
         print("Path collisions: ", pathCollisions)
         print("Switch collisions: ", switchCollisions)
 
-    @staticmethod
-    def simulate(map_dict, map_name, agents_num, starts_num, goals_num, tasks_num, tasks_frequency, learning=False):
+    def simulate(self, map_dict, map_name, agents_num, starts_num, goals_num, tasks_num, tasks_frequency, learning=False):
         goal_locations = map_dict['map']['goal_locations']
         start_locations = map_dict['map']['start_locations']
 
@@ -170,7 +170,7 @@ class GenerateResults:
         goal_locations = [goal for goalIndex, goal in enumerate(goal_locations) if goalIndex not in goals_to_delete]
 
         dimensions = map_dict['map']['dimensions']
-        max_time = 10000
+        max_time = 100000
         dimensions = (dimensions[0], dimensions[1], max_time)
         task_distributions = [dict() for i in range(max_time)]
         tasks = []
@@ -214,9 +214,7 @@ class GenerateResults:
         agents_to_delete = set(random.sample(range(total_agents), total_agents - agents_num))
         agents = [agent for agentIndex, agent in enumerate(agents) if agentIndex not in agents_to_delete]
 
-        print("Running Simulation...")
-
-        simulation = SimulationNewRecovery(tasks, agents, task_distributions, learning, 15, last_task_time)
+        simulation = SimulationNewRecovery(tasks, agents, task_distributions, learning, 15, last_task_time, max_time, max_distance_traffic=self.max_distance_traffic)
         tp = TokenPassingRecovery(agents, dimensions, max_time, obstacles, non_task_endpoints, simulation,
                                   start_locations,
                                   a_star_max_iter=80000, path_1_modified=True,
@@ -230,6 +228,11 @@ class GenerateResults:
         start_to_pickup_times = []
         pickup_to_goal_times = []
 
+        print('Avvio Simulazione:', "\n\tNome Mappa:", map_name, "\n\tNumero Agenti:", len(agents),
+              "\n\tNumero pickup:", len(start_locations), "\n\tNumero goal:", len(goal_locations),
+              "\n\tNumero task:", tasks_num, "\n\tTask frequency:", tasks_frequency, "\n\tLearning:", learning)
+        GenerateResults.check_collisions(simulation)
+
         while tp.get_completed_tasks() != len(tasks):
             initialTime = datetime.datetime.now().timestamp()
 
@@ -241,11 +244,9 @@ class GenerateResults:
             stats = GenerateResults.memorize_run_stats(stats, start_to_goal_times, start_to_pickup_times, pickup_to_goal_times, runtime,
                                        simulation, tp)
 
-        print('Avvio Simulazione:', "\n\tNome Mappa:", map_name, "\n\tNumero Agenti:", len(agents),
-              "\n\tNumero pickup:", len(start_locations), "\n\tNumero goal:", len(goal_locations),
-              "\n\tNumero task:", tasks_num, "\n\tTask frequency:", tasks_frequency, "\n\tLearning:", learning)
-        GenerateResults.check_collisions(simulation)
+        print("Simulation finished")
 
+        stats['traffic'] = simulation.traffic_matrix
         stats['agents'] = len(agents)
         stats['pickup'] = len(start_locations)
         stats['goal'] = len(goal_locations)
@@ -269,6 +270,8 @@ if __name__ == '__main__':
 
     parser = ArgumentParser()
 
+    parser.add_argument('-max_distance_traffic', default=5, type=positive_integer,
+                        help='Max distance to consider when calculating traffic matrix')
     agent_group = parser.add_mutually_exclusive_group()
     agent_group.add_argument('-agents', default=1, type=positive_integer,
                              help='Number of possible agent combinations')
@@ -363,6 +366,6 @@ if __name__ == '__main__':
 
     maps_out = []
 
-    gen_result = GenerateResults(maps, tasks_num, tasks_frequency, agents_num, start_num, goal_num)
+    gen_result = GenerateResults(maps, tasks_num, tasks_frequency, agents_num, start_num, goal_num, args.max_distance_traffic)
 
     gen_result.generate_results()

@@ -8,6 +8,12 @@ from Utils.observer_pattern import Observer, Observable
 from Utils.type_checking import Agent, Location
 
 
+def admissible_heuristic(task_pos, agent_pos):
+    if task_pos is None or agent_pos is None:
+        return math.inf
+    return fabs(task_pos[0] - agent_pos[0]) + fabs(task_pos[1] - agent_pos[1])
+
+
 class TokenPassingRecovery(Observer):
     def __init__(self, agents: list[Agent], dimensions, max_time, obstacles, non_task_endpoints, simulation,
                  starts: list[Location], a_star_max_iter=800000000, path_1_modified=False, path_2_modified=False,
@@ -27,7 +33,7 @@ class TokenPassingRecovery(Observer):
         for location in self.starts:
             zone = []
             for start in self.starts:
-                if self.admissible_heuristic(start, location) <= preemption_radius:
+                if admissible_heuristic(start, location) <= preemption_radius:
                     zone.append(start)
             preemption_zones[tuple(location)] = zone
         self.preemption_zones = preemption_zones
@@ -91,20 +97,15 @@ class TokenPassingRecovery(Observer):
                 agents[name] = path
         return agents
 
-    def admissible_heuristic(self, task_pos, agent_pos):
-        if task_pos is None:
-            return math.inf
-        return fabs(task_pos[0] - agent_pos[0]) + fabs(task_pos[1] - agent_pos[1])
-
     def get_closest_task_name(self, available_tasks, agent_pos):
         closest = random.choice(list(available_tasks.keys()))
         occupied = []
         for path in self.token['agents'].values():
             if len(path) == 1:
                 occupied.append(path[0])
-        dist = self.admissible_heuristic(available_tasks[closest][0], agent_pos)
+        dist = admissible_heuristic(available_tasks[closest][0], agent_pos)
         for task_name, task in available_tasks.items():
-            if self.admissible_heuristic(task[0], agent_pos) < dist and task[0] not in occupied:
+            if admissible_heuristic(task[0], agent_pos) < dist and task[0] not in occupied:
                 closest = task_name
         return closest
 
@@ -162,10 +163,10 @@ class TokenPassingRecovery(Observer):
                     exit = True
             if not exit and endpoint not in self.token['occupied_non_task_endpoints']:
                 if dist == -1:
-                    dist = self.admissible_heuristic(endpoint, agent_pos)
+                    dist = admissible_heuristic(endpoint, agent_pos)
                     res = endpoint
                 else:
-                    tmp = self.admissible_heuristic(endpoint, agent_pos)
+                    tmp = admissible_heuristic(endpoint, agent_pos)
                     if tmp < dist:
                         dist = tmp
                         res = endpoint
@@ -211,7 +212,7 @@ class TokenPassingRecovery(Observer):
                 start = [x, y]
                 if start in self.starts and self.check_reachable_task_endpoint(start, agent_pos):
                     examined_loc_attractiveness = 0
-                    distance = self.admissible_heuristic(start, agent_pos) + 1
+                    distance = admissible_heuristic(start, agent_pos) + 1
                     preemption_zone = self.get_preemption_zone(start)
 
                     for t in range(self.simulation.get_time() + 1,
@@ -237,7 +238,7 @@ class TokenPassingRecovery(Observer):
             return best_task
 
         if best_task is not None and 1 / (
-                self.admissible_heuristic(agent_pos, best_task) + 1 + self.preemption_duration) >= best_idle_distance:
+                admissible_heuristic(agent_pos, best_task) + 1 + self.preemption_duration) >= best_idle_distance:
             return best_task
 
         return best_idle
@@ -419,9 +420,9 @@ class TokenPassingRecovery(Observer):
                 else:
                     closest_task_name = self.get_closest_task_name(available_tasks, agent_pos)
                     closest_task = available_tasks[closest_task_name]
-                    if preemption_duration == 0 and self.path_1_modified and self.admissible_heuristic(
+                    if preemption_duration == 0 and self.path_1_modified and admissible_heuristic(
                             self.get_best_idle_location(agent_pos, closest_task[0]),
-                            agent_pos) < self.admissible_heuristic(closest_task[0], agent_pos):
+                            agent_pos) < admissible_heuristic(closest_task[0], agent_pos):
                         self.go_to_closest_non_task_endpoint(agent_name, agent_pos, all_idle_agents, True)
                         x = 0
                 if x is None:
