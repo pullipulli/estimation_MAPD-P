@@ -319,6 +319,7 @@ class StatsVisualizer:
         fig, ax = plt.subplots(nrows=double_bar_rows, ncols=math.ceil(len(TIME_METRIC_NAMES) / double_bar_rows),
                                figsize=(width_coefficient * math.ceil(len(TIME_METRIC_NAMES) / double_bar_rows),
                                         height_coefficient * double_bar_rows))
+        ax[-1][-1].axis('off')
         self.show_double_bar_time_metric(map_name, ax, row_number=double_bar_rows)
 
         fig, ax = plt.subplots(nrows=len(run_ids), ncols=len(TIME_EVOLUTION_NAMES), figsize=(

@@ -81,8 +81,9 @@ class SimulationNewRecovery(Observable):
                     agent2_pos = self.actual_paths[agent2['name']][-1]
                     distance = math.floor(admissible_heuristic((agent1_pos['x'], agent1_pos['y']),
                                                                (agent2_pos['x'], agent2_pos['y'])))
-                    if distance < self.max_distance_traffic:
-                        newRow[distance] += 0.5  # couples of agents (so we need to add 2 0.5 to have 1 couple)
+
+                    if 0 < distance <= self.max_distance_traffic:
+                        newRow[distance-1] += 0.5  # couples of agents (so we need to add 2 0.5 to have 1 couple)
 
         self.traffic_matrix.append(newRow)
 

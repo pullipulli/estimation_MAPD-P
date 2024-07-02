@@ -9,7 +9,7 @@ import time
 
 import yaml
 import RootPath
-import os
+import os.path
 import numpy as np
 import random
 
@@ -33,6 +33,17 @@ class GenerateResults:
         self.run_ids = set()
 
     def generate_results(self):
+        def uniquify(path):
+            filename, extension = os.path.splitext(path)
+            counter = 1
+
+            while os.path.exists(path):
+                path = filename + " (" + str(counter) + ")" + extension
+                counter += 1
+
+            return path
+
+
         for myMap in maps:
             self.generate_output_map(myMap)
 
@@ -41,10 +52,12 @@ class GenerateResults:
                   "start_num": self.start_num, "goal_num": self.goal_num}
         timestr = time.strftime("%d_%m_%Y__%H_%M_%S")
 
-        with open(RootPath.get_root() + '/Utils/ShowStats/ResultsJsons/results_' + timestr + '.json', 'w+') as f:
+        jsonFileName = uniquify(RootPath.get_root() + '/Utils/ShowStats/ResultsJsons/results_' + timestr + '.json')
+
+        with open(jsonFileName, 'w+') as f:
             json.dump(output, f, separators=(',', ':'))
 
-        print("Results saved in: ", 'results_' + timestr + '.json')
+        print(jsonFileName)
 
     @staticmethod
     def memorize_run_stats(old_stats, start_to_goal_times, start_to_pickup_times, pickup_to_goal_times,
