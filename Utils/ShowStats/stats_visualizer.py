@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import math
+import seaborn as sns
 
 TIME_METRIC_NAMES = ["costs", "serv_times", "pickup_to_goal_times", "start_to_pickup_times", "runtimes", "makespans",
                      "earth_mover_dist"]
@@ -276,34 +277,37 @@ class StatsVisualizer:
             config, _, _, _, _, traffic_fixed, traffic_learning = self.stats_of(run_id=run_id)
             fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(14, 7))
 
-            im_fixed = ax[0].imshow(traffic_fixed, cmap='hot', aspect='auto', interpolation='None')
-            ax[0].set_title("Fixed")
+            max_distance_fixed = max(len(dist_list) for dist_list in traffic_fixed)
+            max_distance_learning = max(len(dist_list) for dist_list in traffic_learning)
+
+            xticks_fixed = range(1, max_distance_fixed + 1)
+            xticks_learning = range(1, max_distance_learning + 1)
+
+            sns.heatmap(traffic_fixed, cmap='YlOrRd', ax=ax[0])
+            xticks_fixed_locations = ax[0].get_xticks()
+            ax[0].set_xticks(xticks_fixed_locations, labels=xticks_fixed)
+            ax[0].invert_yaxis()
+            ax[0].set_title("Learning")
             ax[0].set_xlabel('Distance')
             ax[0].set_ylabel('Time')
-            labels = [item.get_text().replace('−', '-') for item in ax[0].get_xticklabels()]
-            labels = [int(item) + 1 for item in labels]
-            labels[-1] = ''
-            ax[0].set_xticks(ax[0].get_xticks(), labels)
-            plt.colorbar(im_fixed, ax=ax[0])
 
-            im_learning = ax[1].imshow(traffic_learning, cmap='hot', aspect='auto', interpolation='None')
+            sns.heatmap(traffic_learning, cmap='YlOrRd', ax=ax[1])
+            xticks_learning_locations = ax[1].get_xticks()
+            ax[1].set_xticks(xticks_learning_locations, labels=xticks_learning)
+            ax[1].invert_yaxis()
             ax[1].set_title("Learning")
             ax[1].set_xlabel('Distance')
             ax[1].set_ylabel('Time')
-            labels = [item.get_text().replace('−', '-') for item in ax[1].get_xticklabels()]
-            labels = [int(item) + 1 for item in labels]
-            labels[-1] = ''
-            ax[1].set_xticks(ax[1].get_xticks(), labels)
-            plt.colorbar(im_learning, ax=ax[1])
 
             parameter_string = ""
             for param in config:
                 if param != "map":
                     parameter_string += f"{param}: {config[param]}, "
 
-            fig.suptitle(f"Mappa: {config["map"]}\n" + parameter_string, fontweight='bold',
+            fig.suptitle(f"Traffic:\nMappa: {config["map"]}\n" + parameter_string, fontweight='bold',
                                 fontsize=self.fontSize)
 
+            plt.tight_layout()
             plt.show()
 
     def show_all_metrics(self, map_name):
