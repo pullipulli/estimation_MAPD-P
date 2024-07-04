@@ -1,8 +1,5 @@
-import matplotlib
-from matplotlib.patches import Circle, Rectangle, RegularPolygon, Patch
+from matplotlib.patches import Circle, Rectangle, Patch
 import matplotlib.pyplot as plt
-import numpy as np
-from matplotlib import animation
 import os
 import RootPath
 import yaml
