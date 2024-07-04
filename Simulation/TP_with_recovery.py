@@ -20,9 +20,11 @@ if typing.TYPE_CHECKING:
 
 
 def admissible_heuristic(pos1: Location, pos2: Location):
+    """Manhattan distance between two positions."""
     if pos1 is None or pos2 is None:
         return math.inf
     return fabs(pos1[0] - pos2[0]) + fabs(pos1[1] - pos2[1])
+
 
 class TokenPassingRecovery(Observer):
     """
