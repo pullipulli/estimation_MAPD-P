@@ -1,10 +1,12 @@
+"""
+This script is used to convert ASCII maps to YAML format.
+"""
+
 import json
 import os
 import random
 import re
-
 import yaml
-
 import RootPath
 
 if __name__ == '__main__':

@@ -1,3 +1,13 @@
+"""
+This script is used to visualize a map from a yaml file.
+The map is visualized using matplotlib.
+The map is saved as a png file in the maps_pngs folder.
+It shows all the possible start locations (orange), goal locations (green), obstacles (black) and non-task endpoints (green circles).
+The legend is shown by default. If you want to hide it, set the legend parameter to False.
+If the legend is hidden, the start locations are marked with an "S", the goal locations with a "G" and if the locations are both goal and start, they are marked with a "B".
+author: Andrea Pullia (@pullipulli)
+"""
+
 from matplotlib.patches import Circle, Rectangle, Patch
 import matplotlib.pyplot as plt
 import os

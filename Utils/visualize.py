@@ -1,3 +1,8 @@
+"""
+This file contains the code to visualize the simulation. It uses matplotlib to create an animation of the simulation.
+The animation shows the agents moving in the environment and the tasks being completed.
+"""
+
 import matplotlib
 from matplotlib.patches import Circle, Rectangle, RegularPolygon
 import matplotlib.pyplot as plt
@@ -9,6 +14,14 @@ Colors = ['orange', 'blue', 'green']
 
 
 class Animation:
+    """
+    This class creates an animation of the simulation. It shows the agents moving in the environment and the tasks being completed.
+    Yellow Circles are used to represent the agents.
+    Green Circles are used to represent the non task endpoints.
+    Black rectangles are used to represent the obstacles.
+    Orange/Blue/Green little squares are used to represent the pickup.
+    Orange/Blue/Green Triangles are used to represent the goal.
+    """
     def __init__(self, map, schedule, slow_factor=10):
         self.map = map
         self.schedule = schedule
@@ -88,15 +101,27 @@ class Animation:
                                             repeat=False)
 
     def save(self, file_name, speed=2):
+        """
+        Save the animation to a GIF file.
+        :param file_name: 
+        :param speed: 
+        :return: 
+        """
         writer = animation.ImageMagickFileWriter(fps=10 * speed)
         self.anim.save(
             file_name,
             writer)
 
-    def show(self):
+    @staticmethod
+    def show():
+        """Show the animation."""
         plt.show()
 
     def init_func(self):
+        """
+        Initialize the animation.
+        :return:
+        """
         for p in self.patches:
             self.ax.add_patch(p)
         for a in self.artists:
@@ -104,6 +129,11 @@ class Animation:
         return self.patches + self.artists
 
     def animate_func(self, i):
+        """
+        Animate the simulation.
+        :param i:
+        :return:
+        """
         for agent_name, agent in self.combined_schedule.items():
             pos = self.getState(i / self.slow_factor, agent)
             p = (pos[0], pos[1])
@@ -139,6 +169,12 @@ class Animation:
         return self.patches + self.artists
 
     def getState(self, t, d):
+        """
+        Get the state of the simulation at time t.
+        :param t:
+        :param d:
+        :return:
+        """
         idx = 0
         while idx < len(d) and d[idx]["t"] < t:
             idx += 1
