@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import math
 import random
 from collections import defaultdict
@@ -5,17 +7,20 @@ from math import fabs
 
 from Simulation.CBS.cbs import CBS, Environment
 from Utils.observer_pattern import Observer, Observable
-from Utils.type_checking import Agent, Location
+from Utils.type_checking import Agent, Location, Dimensions, Token, LocationAtTime, PreemptionZones, PreemptedLocations
+import typing
+
+if typing.TYPE_CHECKING:
+    from Simulation.simulation_new_recovery import SimulationNewRecovery
 
 
-def admissible_heuristic(task_pos, agent_pos):
-    if task_pos is None or agent_pos is None:
+def admissible_heuristic(pos1: Location, pos2: Location):
+    if pos1 is None or pos2 is None:
         return math.inf
-    return fabs(task_pos[0] - agent_pos[0]) + fabs(task_pos[1] - agent_pos[1])
-
+    return fabs(pos1[0] - pos2[0]) + fabs(pos1[1] - pos2[1])
 
 class TokenPassingRecovery(Observer):
-    def __init__(self, agents: list[Agent], dimensions, max_time, obstacles, non_task_endpoints, simulation,
+    def __init__(self, agents: list[Agent], dimensions: Dimensions, max_time: int, obstacles: list[Location], non_task_endpoints: list[Location], simulation: SimulationNewRecovery,
                  starts: list[Location], a_star_max_iter=800000000, path_1_modified=False, path_2_modified=False,
                  preemption_radius=0, preemption_duration=0):
         self.agents = agents
@@ -27,8 +32,8 @@ class TokenPassingRecovery(Observer):
         self.preemption_radius = preemption_radius
         self.preemption_duration = preemption_duration
         self.learn_task_distribution = simulation.learn_task_distribution
-        preemption_zones = {}
-        self.preempted_locations = {}
+        preemption_zones: PreemptionZones = {}
+        self.preempted_locations: PreemptedLocations = {}
         self.preemption_status = {}
         for location in self.starts:
             zone = []
@@ -46,7 +51,20 @@ class TokenPassingRecovery(Observer):
             # not well-formed instance
             exit(1)
         # TODO: Check all properties for well-formedness
-        self.token = {}
+        self.token: Token = {
+            'agents': {},
+            'tasks': {},
+            'start_tasks_times': {},
+            'pick_up_tasks_times': {},
+            'completed_tasks_times': {},
+            'estimated_cost_per_task': defaultdict(lambda: 0),
+            'real_task_cost': defaultdict(lambda: 0),
+            'agents_to_tasks': {},
+            'completed_tasks': 0,
+            'path_ends': set(),
+            'occupied_non_task_endpoints': set(),
+            'deadlock_count_per_agent': defaultdict(lambda: 0),
+        }
         self.simulation = simulation
         self.a_star_max_iter = a_star_max_iter
         if self.learn_task_distribution:
@@ -55,24 +73,13 @@ class TokenPassingRecovery(Observer):
         self.init_token()
 
     def init_token(self):
-        self.token['agents'] = {}
-        self.token['tasks'] = {}
-        self.token['start_tasks_times'] = {}
-        self.token['pick_up_tasks_times'] = {}
-        self.token['completed_tasks_times'] = {}
-        self.token['estimated_cost_per_task'] = defaultdict(lambda: 0)
-        self.token['real_task_cost'] = defaultdict(lambda: 0)
         for t in self.simulation.get_new_tasks():
             self.token['tasks'][t['task_name']] = [t['start'], t['goal']]
             self.token['start_tasks_times'][t['task_name']] = self.simulation.get_time()
-        self.token['agents_to_tasks'] = {}
-        self.token['completed_tasks'] = 0
-        self.token['path_ends'] = set()
-        self.token['occupied_non_task_endpoints'] = set()
+
         for a in self.agents:
             self.token['agents'][a['name']] = [a['start']]
             self.token['path_ends'].add(tuple(a['start']))
-        self.token['deadlock_count_per_agent'] = defaultdict(lambda: 0)
 
     def increment_real_task_cost(self, task_name):
         actual_cost = self.token['real_task_cost'].get(task_name, 0)
@@ -194,11 +201,11 @@ class TokenPassingRecovery(Observer):
                 locations.append(location)
         return list(locations)
 
-    def get_best_idle_location(self, agent_pos, best_task=None) -> [int, int]:
+    def get_best_idle_location(self, agent_pos, agent_name, best_task=None) -> [int, int]:
         best_idle_distance = -1
         best_idle = [-1, -1]
         if best_task is not None and tuple(agent_pos) in self.starts and best_task in self.preempted_locations[
-             tuple(agent_pos)]:
+             agent_name]:
             return best_task
 
         num_x = self.dimensions[0]
@@ -285,7 +292,7 @@ class TokenPassingRecovery(Observer):
         best_idle_location = None
         closest_non_task_endpoint = None
         if path_modified:
-            closest_non_task_endpoint = self.get_best_idle_location(agent_pos)
+            closest_non_task_endpoint = self.get_best_idle_location(agent_pos, agent_name)
             best_idle_location = closest_non_task_endpoint
         if closest_non_task_endpoint is None:  # or self.simulation.time > 100:
             closest_non_task_endpoint = self.get_closest_non_task_endpoint(agent_pos)
@@ -295,7 +302,7 @@ class TokenPassingRecovery(Observer):
         env = Environment(self.dimensions, [agent], self.obstacles | idle_obstacles_agents, moving_obstacles_agents,
                           a_star_max_iter=self.a_star_max_iter)
         cbs = CBS(env)
-        path_to_non_task_endpoint = self.search(cbs)
+        path_to_non_task_endpoint: list[LocationAtTime] = self.search(cbs)
 
         if path_to_non_task_endpoint:
             self.update_ends(agent_pos)
@@ -421,7 +428,7 @@ class TokenPassingRecovery(Observer):
                     closest_task_name = self.get_closest_task_name(available_tasks, agent_pos)
                     closest_task = available_tasks[closest_task_name]
                     if preemption_duration == 0 and self.path_1_modified and admissible_heuristic(
-                            self.get_best_idle_location(agent_pos, closest_task[0]),
+                            self.get_best_idle_location(agent_pos, agent_name, closest_task[0]),
                             agent_pos) < admissible_heuristic(closest_task[0], agent_pos):
                         self.go_to_closest_non_task_endpoint(agent_name, agent_pos, all_idle_agents, True)
                         x = 0
@@ -432,7 +439,7 @@ class TokenPassingRecovery(Observer):
                     env = Environment(self.dimensions, [agent], self.obstacles | idle_obstacles_agents,
                                       moving_obstacles_agents, a_star_max_iter=self.a_star_max_iter)
                     cbs = CBS(env)
-                    path_to_task_start = self.search(cbs)
+                    path_to_task_start: list[LocationAtTime] = self.search(cbs)
                     if path_to_task_start:
                         cost1 = env.compute_solution_cost(path_to_task_start)
 
@@ -449,7 +456,7 @@ class TokenPassingRecovery(Observer):
                         env = Environment(self.dimensions, [agent], self.obstacles | idle_obstacles_agents,
                                           moving_obstacles_agents, a_star_max_iter=self.a_star_max_iter)
                         cbs = CBS(env)
-                        path_to_task_goal = self.search(cbs)
+                        path_to_task_goal: list[LocationAtTime] = self.search(cbs)
                         if path_to_task_goal:
                             cost2 = env.compute_solution_cost(path_to_task_goal)
                             env = Environment(self.dimensions, [agent], self.obstacles,
@@ -491,5 +498,5 @@ class TokenPassingRecovery(Observer):
     def update(self, observable: Observable, *args, **kwargs):
         self.learned_task_distribution = dict(self.simulation.get_learned_task_distribution())
 
-    def print(self, string):
+    def print(self, string: str):
         print("TIME " + str(self.simulation.time) + ": " + string)
