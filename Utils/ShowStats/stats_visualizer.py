@@ -280,6 +280,8 @@ class StatsVisualizer:
         for run_id in run_ids:
             config, _, _, _, _, traffic_fixed, traffic_learning = self.stats_of(run_id=run_id)
             fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(14, 7))
+            ax: list[Axes] = ax
+            fig: plt.Figure = fig
 
             max_distance_fixed = max(len(dist_list) for dist_list in traffic_fixed)
             max_distance_learning = max(len(dist_list) for dist_list in traffic_learning)

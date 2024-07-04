@@ -19,8 +19,6 @@ def admissible_heuristic(pos1: Location, pos2: Location):
         return math.inf
     return fabs(pos1[0] - pos2[0]) + fabs(pos1[1] - pos2[1])
 
-# TODO CONTROLLA I WARNING, POTREBBERO ESSERE SENSATI STAVOLTA
-
 class TokenPassingRecovery(Observer):
     def __init__(self, agents: list[Agent], dimensions: Dimensions, max_time: int, obstacles: list[Location], non_task_endpoints: list[Location], simulation: SimulationNewRecovery,
                  starts: list[Location], a_star_max_iter=800000000, path_1_modified=False, path_2_modified=False,
