@@ -9,16 +9,19 @@ import time
 
 import yaml
 import RootPath
-import os
+import os.path
 import numpy as np
 import random
 
 from Simulation.TP_with_recovery import TokenPassingRecovery
 from Simulation.simulation_new_recovery import SimulationNewRecovery
+from Utils.type_checking import RunId, MapOutput, StatSimulation, StatJson, MapStats
+from typing import Set
 
 
 class GenerateResults:
-    def __init__(self, maps, tasks_num, tasks_frequency, agents_num, start_num, goal_num):
+    def __init__(self, maps: list[MapStats], tasks_num: list[int], tasks_frequency: list[float], agents_num: list[int],
+                 start_num: list[int], goal_num: list[int], max_distance_traffic: int):
         self.simulation_number = len(maps) * len(tasks_num) * len(agents_num) * len(start_num) * len(
             goal_num * len(tasks_frequency)) * 2
         self.maps = maps
@@ -27,37 +30,52 @@ class GenerateResults:
         self.agents_num = agents_num
         self.start_num = start_num
         self.goal_num = goal_num
+        self.max_distance_traffic = max_distance_traffic
         self.simulation_progress = 0
-        self.maps_out = []
-        self.run_ids = set()
+        self.maps_out: list[MapOutput] = []
+        self.run_ids: Set[RunId] = set()
 
-    def generate_results(self):
-        for myMap in maps:
+    def generate_results(self) -> None:
+        def uniquify(path: str):
+            filename, extension = os.path.splitext(path)
+            counter = 1
+
+            while os.path.exists(path):
+                path = filename + " (" + str(counter) + ")" + extension
+                counter += 1
+
+            return path
+
+        for myMap in self.maps:
             self.generate_output_map(myMap)
 
-        output = {"maps": self.maps_out, "tasks_num": self.tasks_num, "tasks_frequency": self.tasks_frequency,
-                  "agents_num": self.agents_num,
-                  "start_num": self.start_num, "goal_num": self.goal_num}
+        output: StatJson = {"maps": self.maps_out, "tasks_num": self.tasks_num, "tasks_frequency": self.tasks_frequency,
+                            "agents_num": self.agents_num,
+                            "start_num": self.start_num, "goal_num": self.goal_num}
         timestr = time.strftime("%d_%m_%Y__%H_%M_%S")
 
-        with open(RootPath.get_root() + '/Utils/ShowStats/ResultsJsons/results_' + timestr + '.json', 'w+') as f:
+        jsonFileName = uniquify(RootPath.get_root() + '/Utils/ShowStats/ResultsJsons/results_' + timestr + '.json')
+
+        with open(jsonFileName, 'w+') as f:
             json.dump(output, f, separators=(',', ':'))
 
-        print("Results saved in: ", 'results_' + timestr + '.json')
+        print(jsonFileName)
 
     @staticmethod
-    def memorize_run_stats(old_stats, start_to_goal_times, start_to_pickup_times, pickup_to_goal_times,
+    def memorize_run_stats(old_stats: StatSimulation, start_to_goal_times: list[float],
+                           start_to_pickup_times: list[float], pickup_to_goal_times: list[float],
                            actual_runtime: float, running_simulation: SimulationNewRecovery,
-                           token_passing: TokenPassingRecovery):
+                           token_passing: TokenPassingRecovery) -> StatSimulation:
         if running_simulation.time == 1:
             return {"costs": [0], "serv_times": [0], "start_to_pickup_times": [0], "pickup_to_goal_times": [0],
-                    "runtimes": [actual_runtime], "number_of_tasks": len(running_simulation.tasks)}
+                    "runtimes": [actual_runtime], "earth_mover_dist": [running_simulation.get_earth_mover_distance()]}
         else:
             pickup_to_goal_avgs = old_stats["pickup_to_goal_times"]
             start_to_pickup_avgs = old_stats["start_to_pickup_times"]
             serv_times = old_stats["serv_times"]
             runtimes = old_stats["runtimes"]
             costs = old_stats["costs"]
+            earth_mover_distance = old_stats["earth_mover_dist"]
 
             cost = 0
             for path in running_simulation.actual_paths.values():
@@ -103,36 +121,41 @@ class GenerateResults:
             serv_times.append(mean(start_to_goal_times))
             runtimes.append(actual_runtime)
             costs.append(cost)
+            earth_mover_distance.append(running_simulation.get_earth_mover_distance())
 
             return {"costs": costs, "serv_times": serv_times, "start_to_pickup_times": start_to_pickup_avgs,
                     "pickup_to_goal_times": pickup_to_goal_avgs, "runtimes": runtimes,
-                    "number_of_tasks": len(running_simulation.tasks)}
+                    "earth_mover_dist": earth_mover_distance}
 
-    def generate_output_map(self, map):
+    def generate_output_map(self, map: MapStats):
         for agents in self.agents_num:
             for starts in self.start_num:
                 for goals in self.goal_num:
                     for tasks in self.tasks_num:
                         for task_frequency in self.tasks_frequency:
-                            result_fixed = self.simulate(map, map["name"], agents, starts, goals, tasks, task_frequency, learning=False)
+                            result_fixed = self.simulate(map, map["name"], agents, starts, goals, tasks, task_frequency,
+                                                         learning=False)
                             self.simulation_progress += 1
                             print("Progress: ", format(self.simulation_progress / self.simulation_number, ".2%"))
 
-                            results_learning = self.simulate(map, map["name"], agents, starts, goals, tasks, task_frequency, learning=True)
+                            results_learning = self.simulate(map, map["name"], agents, starts, goals, tasks,
+                                                             task_frequency, learning=True)
                             self.simulation_progress += 1
                             print("Progress: ", format(self.simulation_progress / self.simulation_number, ".2%"))
 
                             run_id = (str(result_fixed['map_name']) + "_agents_" + str(
                                 result_fixed['agents']) + "_pickup_" +
                                       str(result_fixed['pickup']) + "_goal_" + str(result_fixed['goal']) +
-                                      "_tasks_" + str(result_fixed['tasks']) + "_task_frequency_" + str(result_fixed['task_frequency']))
+                                      "_tasks_" + str(result_fixed['tasks']) + "_task_frequency_" + str(
+                                        result_fixed['task_frequency']))
 
                             if run_id not in self.run_ids:
-                                self.maps_out.append({'run_id': run_id, 'fixed': result_fixed, 'learning': results_learning})
+                                self.maps_out.append(
+                                    {'run_id': run_id, 'fixed': result_fixed, 'learning': results_learning})
                                 self.run_ids.add(run_id)
 
     @staticmethod
-    def check_collisions(simulation):
+    def check_collisions(simulation: SimulationNewRecovery):
         pathCollisions = 0
         switchCollisions = 0
         for agent in simulation.actual_paths.keys():
@@ -147,8 +170,8 @@ class GenerateResults:
         print("Path collisions: ", pathCollisions)
         print("Switch collisions: ", switchCollisions)
 
-    @staticmethod
-    def simulate(map_dict, map_name, agents_num, starts_num, goals_num, tasks_num, tasks_frequency, learning=False):
+    def simulate(self, map_dict: MapStats, map_name: str, agents_num: int, starts_num: int, goals_num: int, tasks_num: int, tasks_frequency: float,
+                 learning=False) -> StatSimulation:
         goal_locations = map_dict['map']['goal_locations']
         start_locations = map_dict['map']['start_locations']
 
@@ -168,7 +191,7 @@ class GenerateResults:
         goal_locations = [goal for goalIndex, goal in enumerate(goal_locations) if goalIndex not in goals_to_delete]
 
         dimensions = map_dict['map']['dimensions']
-        max_time = 10000
+        max_time = 100000
         dimensions = (dimensions[0], dimensions[1], max_time)
         task_distributions = [dict() for i in range(max_time)]
         tasks = []
@@ -212,9 +235,8 @@ class GenerateResults:
         agents_to_delete = set(random.sample(range(total_agents), total_agents - agents_num))
         agents = [agent for agentIndex, agent in enumerate(agents) if agentIndex not in agents_to_delete]
 
-        print("Running Simulation...")
-
-        simulation = SimulationNewRecovery(tasks, agents, task_distributions, learning, 15, last_task_time)
+        simulation = SimulationNewRecovery(tasks, agents, task_distributions, learning, 15, last_task_time, max_time,
+                                           max_distance_traffic=self.max_distance_traffic)
         tp = TokenPassingRecovery(agents, dimensions, max_time, obstacles, non_task_endpoints, simulation,
                                   start_locations,
                                   a_star_max_iter=80000, path_1_modified=True,
@@ -228,6 +250,11 @@ class GenerateResults:
         start_to_pickup_times = []
         pickup_to_goal_times = []
 
+        print('Avvio Simulazione:', "\n\tNome Mappa:", map_name, "\n\tNumero Agenti:", len(agents),
+              "\n\tNumero pickup:", len(start_locations), "\n\tNumero goal:", len(goal_locations),
+              "\n\tNumero task:", tasks_num, "\n\tTask frequency:", tasks_frequency, "\n\tLearning:", learning)
+        GenerateResults.check_collisions(simulation)
+
         while tp.get_completed_tasks() != len(tasks):
             initialTime = datetime.datetime.now().timestamp()
 
@@ -236,14 +263,14 @@ class GenerateResults:
             final = datetime.datetime.now().timestamp()
             runtime += final - initialTime
 
-            stats = GenerateResults.memorize_run_stats(stats, start_to_goal_times, start_to_pickup_times, pickup_to_goal_times, runtime,
-                                       simulation, tp)
+            stats: StatSimulation = GenerateResults.memorize_run_stats(stats, start_to_goal_times,
+                                                                       start_to_pickup_times, pickup_to_goal_times,
+                                                                       runtime,
+                                                                       simulation, tp)
 
-        print('Avvio Simulazione:', "\n\tNome Mappa:", map_name, "\n\tNumero Agenti:", len(agents),
-              "\n\tNumero pickup:", len(start_locations), "\n\tNumero goal:", len(goal_locations),
-              "\n\tNumero task:", tasks_num, "\n\tTask frequency:", tasks_frequency, "\n\tLearning:", learning)
-        GenerateResults.check_collisions(simulation)
+        print("Simulation finished")
 
+        stats['traffic'] = simulation.traffic_matrix
         stats['agents'] = len(agents)
         stats['pickup'] = len(start_locations)
         stats['goal'] = len(goal_locations)
@@ -252,12 +279,13 @@ class GenerateResults:
         stats['estimated_costs'] = tp.get_estimated_task_costs()
         stats['real_costs'] = tp.get_real_task_costs()
         stats['map_name'] = map_name
+        stats['last_task_time'] = last_task_time
 
         return stats
 
 
 if __name__ == '__main__':
-    def positive_integer(value):
+    def positive_integer(value: str):
         ivalue = int(value)
         if ivalue < 1:
             raise ArgumentTypeError("%s is an invalid positive int value" % value)
@@ -266,6 +294,8 @@ if __name__ == '__main__':
 
     parser = ArgumentParser()
 
+    parser.add_argument('-max_distance_traffic', default=5, type=positive_integer,
+                        help='Max distance to consider when calculating traffic matrix')
     agent_group = parser.add_mutually_exclusive_group()
     agent_group.add_argument('-agents', default=1, type=positive_integer,
                              help='Number of possible agent combinations')
@@ -301,7 +331,7 @@ if __name__ == '__main__':
 
     map_file_names = glob(os.path.join(RootPath.get_root(), 'Environments', '*.yaml'))
 
-    maps = []
+    maps: list[MapStats] = []
 
     max_tasks_frequency = 1
     max_tasks = 100
@@ -358,8 +388,7 @@ if __name__ == '__main__':
             except yaml.YAMLError as exc:
                 print(exc)
 
-    maps_out = []
-
-    gen_result = GenerateResults(maps, tasks_num, tasks_frequency, agents_num, start_num, goal_num)
+    gen_result = GenerateResults(maps, tasks_num, tasks_frequency, agents_num, start_num, goal_num,
+                                 args.max_distance_traffic)
 
     gen_result.generate_results()
