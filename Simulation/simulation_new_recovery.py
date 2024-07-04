@@ -7,7 +7,7 @@ from scipy.stats import wasserstein_distance
 
 from Simulation.TP_with_recovery import admissible_heuristic
 from Utils.observer_pattern import Observable
-from Utils.type_checking import TaskDistribution, Task, Agent, Time
+from Utils.type_checking import TaskDistribution, Task, Agent, Time, AgentName, LocationAtTime
 
 
 class SimulationNewRecovery(Observable):
@@ -22,15 +22,15 @@ class SimulationNewRecovery(Observable):
         self.task_distribution = task_distributions
         self.agents = agents
         self.learn_task_distribution = learn_task_distribution
-        self.learned_task_distribution = dict()
+        self.learned_task_distribution: TaskDistribution = dict()
         self.time = 0
         self.agents_cost = 0
         self.agents_moved = set()
-        self.actual_paths = {}
-        self.algo_time = 0
+        self.actual_paths: dict[AgentName, list[LocationAtTime]] = {}
+        self.algo_time: float = 0
         self.max_time = max_time
         self.max_distance_traffic = max_distance_traffic
-        self.traffic_matrix = []
+        self.traffic_matrix: list[list[int]] = []
         self.initialize_simulation()
 
     def initialize_simulation(self):

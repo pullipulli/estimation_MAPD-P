@@ -5,6 +5,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import math
 import seaborn as sns
+from matplotlib.axes import Axes
+
+from Utils.type_checking import MapOutput, RunId, MapName
 
 TIME_METRIC_NAMES = ["costs", "serv_times", "pickup_to_goal_times", "start_to_pickup_times", "runtimes", "makespans",
                      "earth_mover_dist"]
@@ -19,7 +22,8 @@ TIME_EVOLUTION_NAMES = ["serv_times", "pickup_to_goal_times", "start_to_pickup_t
 
 
 class StatsVisualizer:
-    def __init__(self, maps, agents_num, tasks_num, task_frequency_num, pickup_num, goal_num):
+    def __init__(self, maps: list[MapOutput], agents_num: list[int], tasks_num: list[int],
+                 task_frequency_num: list[float], pickup_num: list[int], goal_num: list[int]):
         self.maps = maps
         self.map_names = set()
         for map in self.maps:
@@ -49,7 +53,7 @@ class StatsVisualizer:
     def get_variable_config_parameter(self):
         return self.variable_param
 
-    def stats_of(self, map_dict=None, run_id=None):
+    def stats_of(self, map_dict: MapOutput = None, run_id: RunId = None):
         if run_id is not None:
             map_dict = [map for map in self.maps if map["run_id"] == run_id][0]
 
@@ -95,9 +99,10 @@ class StatsVisualizer:
             "last_task_time": max(fixed["last_task_time"], learning["last_task_time"])
         }
 
-        return config, df_time_fixed, df_time_learning, df_tasks_fixed, df_tasks_learning, fixed["traffic"], learning["traffic"]
+        return config, df_time_fixed, df_time_learning, df_tasks_fixed, df_tasks_learning, fixed["traffic"], learning[
+            "traffic"]
 
-    def get_run_ids_from_map(self, map_name):
+    def get_run_ids_from_map(self, map_name: MapName):
         run_ids = []
         for map in self.maps:
             config = self.stats_of(map)[0]
@@ -105,7 +110,7 @@ class StatsVisualizer:
                 run_ids.append(map["run_id"])
         return run_ids
 
-    def show_double_bar_time_metric(self, map_name, ax, row_number=2):
+    def show_double_bar_time_metric(self, map_name: MapName, ax: list[list[Axes]], row_number=2):
         run_ids = self.get_run_ids_from_map(map_name)
 
         # set width of bar
@@ -152,7 +157,6 @@ class StatsVisualizer:
                                                edgecolor='grey', label='Fixed')
             ax[rowIndex][columnIndex].barh(bar1, learning_metric[metric_name], color='g', height=barWidth,
                                            edgecolor='grey', label='Learning')
-
             for bars in ax[rowIndex][columnIndex].containers:
                 ax[rowIndex][columnIndex].bar_label(bars, label_type="center", color='w')
 
@@ -179,7 +183,7 @@ class StatsVisualizer:
         plt.tight_layout()
         plt.show()
 
-    def show_metric_evolution(self, map_name, ax):
+    def show_metric_evolution(self, map_name: str, ax: Axes | list[Axes] | list[list[Axes]]):
         run_ids = self.get_run_ids_from_map(map_name)
 
         run_index = 0
@@ -190,7 +194,7 @@ class StatsVisualizer:
             run_ax = ax
 
             if len(run_ids) > 1:
-                run_ax = ax[run_index]
+                run_ax: list[Axes] = ax[run_index]
 
             metric_index = 0
 
@@ -224,7 +228,7 @@ class StatsVisualizer:
         plt.tight_layout()
         plt.show()
 
-    def show_real_vs_estimated_avg_costs(self, map_name, ax):
+    def show_real_vs_estimated_avg_costs(self, map_name: MapName, ax: Axes | list[Axes]):
         run_ids = self.get_run_ids_from_map(map_name)
 
         barWidth = 0.25
@@ -233,7 +237,7 @@ class StatsVisualizer:
         currentAx = ax
         for run_id in run_ids:
             if len(run_ids) > 1:
-                currentAx = ax[i]
+                currentAx: Axes = ax[i]
             config, _, _, df_fixed_costs, df_learning_costs, _, _ = self.stats_of(run_id=run_id)
             fixed_estimated_avg = np.mean(df_fixed_costs["estimated"])
             learning_estimated_avg = np.mean(df_learning_costs["estimated"])
@@ -270,7 +274,7 @@ class StatsVisualizer:
         plt.tight_layout()
         plt.show()
 
-    def show_traffic_evolution(self, map_name):
+    def show_traffic_evolution(self, map_name: MapName):
         run_ids = self.get_run_ids_from_map(map_name)
 
         for run_id in run_ids:
@@ -287,7 +291,7 @@ class StatsVisualizer:
             xticks_fixed_locations = ax[0].get_xticks()
             ax[0].set_xticks(xticks_fixed_locations, labels=xticks_fixed)
             ax[0].invert_yaxis()
-            ax[0].set_title("Learning")
+            ax[0].set_title("Fixed")
             ax[0].set_xlabel('Distance')
             ax[0].set_ylabel('Time')
 
@@ -305,12 +309,12 @@ class StatsVisualizer:
                     parameter_string += f"{param}: {config[param]}, "
 
             fig.suptitle(f"Traffic:\nMappa: {config["map"]}\n" + parameter_string, fontweight='bold',
-                                fontsize=self.fontSize)
+                         fontsize=self.fontSize)
 
             plt.tight_layout()
             plt.show()
 
-    def show_all_metrics(self, map_name):
+    def show_all_metrics(self, map_name: MapName):
         width_coefficient = 7
         height_coefficient = 7
         run_ids = self.get_run_ids_from_map(map_name)

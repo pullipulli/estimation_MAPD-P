@@ -15,12 +15,12 @@ import random
 
 from Simulation.TP_with_recovery import TokenPassingRecovery
 from Simulation.simulation_new_recovery import SimulationNewRecovery
-from Utils.type_checking import Map, RunId, MapOutput, StatSimulation, StatJson, MapStats
+from Utils.type_checking import RunId, MapOutput, StatSimulation, StatJson, MapStats
 from typing import Set
 
 
 class GenerateResults:
-    def __init__(self, maps: list[Map], tasks_num: list[int], tasks_frequency: list[float], agents_num: list[int],
+    def __init__(self, maps: list[MapStats], tasks_num: list[int], tasks_frequency: list[float], agents_num: list[int],
                  start_num: list[int], goal_num: list[int], max_distance_traffic: int):
         self.simulation_number = len(maps) * len(tasks_num) * len(agents_num) * len(start_num) * len(
             goal_num * len(tasks_frequency)) * 2
@@ -331,7 +331,7 @@ if __name__ == '__main__':
 
     map_file_names = glob(os.path.join(RootPath.get_root(), 'Environments', '*.yaml'))
 
-    maps: list[Map] = []
+    maps: list[MapStats] = []
 
     max_tasks_frequency = 1
     max_tasks = 100
@@ -387,8 +387,6 @@ if __name__ == '__main__':
                 maps.append(map_yaml)
             except yaml.YAMLError as exc:
                 print(exc)
-
-    maps_out: list[Map] = []
 
     gen_result = GenerateResults(maps, tasks_num, tasks_frequency, agents_num, start_num, goal_num,
                                  args.max_distance_traffic)
