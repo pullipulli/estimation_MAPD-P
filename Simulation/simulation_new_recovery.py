@@ -1,8 +1,12 @@
+"""
+SimulationNewRecovery class
+This class is used to simulate the execution of a MAPD solving algorithm.
+"""
+
 import math
 import random
 import time
 
-import numpy as np
 from scipy.stats import wasserstein_distance
 
 from Simulation.TP_with_recovery import admissible_heuristic
@@ -11,6 +15,11 @@ from Utils.type_checking import TaskDistribution, Task, Agent, Time, AgentName, 
 
 
 class SimulationNewRecovery(Observable):
+    """
+    This class is used to simulate the execution of the algorithm with the recovery mechanism.
+    The simulation is done by moving the agents (it also updates the traffic matrix).
+    The simulation can also learn the task distribution and update it every update_time.
+    """
 
     def __init__(self, tasks: list[Task], agents: list[Agent], task_distributions: list[TaskDistribution] = None,
                  learn_task_distribution=False,
@@ -34,10 +43,20 @@ class SimulationNewRecovery(Observable):
         self.initialize_simulation()
 
     def initialize_simulation(self):
+        """
+        Initialize the simulation by setting the initial paths of the agents in actual_paths.
+        :return:
+        """
         for agent in self.agents:
             self.actual_paths[agent['name']] = [{'t': 0, 'x': agent['start'][0], 'y': agent['start'][1]}]
 
     def time_forward(self, algorithm):
+        """
+        Move the agents and update the traffic matrix.
+        Update the learned task distribution if needed.
+        :param algorithm:
+        :return:
+        """
         self.time = self.time + 1
 
         start_time = time.time()
@@ -103,15 +122,22 @@ class SimulationNewRecovery(Observable):
                 self.notify_observers()
 
     def get_time(self) -> Time:
+        """Get the current simulation time."""
         return self.time
 
     def get_algo_time(self) -> float:
+        """Get the real time spent in the algorithm."""
         return self.algo_time
 
     def get_actual_paths(self):
+        """Get the actual paths of the agents."""
         return self.actual_paths
 
     def get_new_tasks(self) -> list[Task]:
+        """
+        Get the tasks that start at the current time.
+        :return:
+        """
         new = []
         for t in self.tasks:
             if t['start_time'] == self.time:
@@ -119,6 +145,10 @@ class SimulationNewRecovery(Observable):
         return new
 
     def get_learned_task_distribution(self) -> TaskDistribution:
+        """
+        Get the learned (relative) task distribution.
+        :return:
+        """
         freq_task_distribution = dict()
 
         for task in self.learned_task_distribution:
@@ -127,15 +157,28 @@ class SimulationNewRecovery(Observable):
         return freq_task_distribution
 
     def get_fixed_task_distribution_at_t(self, t) -> TaskDistribution:
+        """
+        Get the fixed task distribution at time t.
+        :param t:
+        :return:
+        """
         if len(self.task_distribution) <= t:
             return dict()
 
         return dict(self.task_distribution[t])
 
     def get_number_of_assigned_tasks(self):
+        """
+        Get the number of assigned tasks.
+        :return:
+        """
         return sum(self.learned_task_distribution.values())
 
     def get_earth_mover_distance(self):
+        """
+        Compute the earth mover distance between the fixed task distribution and the learned task distribution.
+        :return:
+        """
         learned_td = self.get_learned_task_distribution()
         fixed_td = self.get_fixed_task_distribution_at_t(self.time)
         fixed_tasks_at_t = sum(fixed_td.values())

@@ -1,3 +1,7 @@
+"""
+This module contains type aliases and typed dictionaries used for type checking in the project.
+"""
+
 from typing import TypeAlias, TypedDict, Literal, NotRequired
 
 Coordinate: TypeAlias = int

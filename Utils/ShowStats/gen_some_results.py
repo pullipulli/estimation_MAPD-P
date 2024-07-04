@@ -1,3 +1,9 @@
+"""
+This script generates results for the given maps, agents, starts, goals, tasks and task frequencies.
+It generates results for both fixed and learning cases.
+author: Andrea Pullia (@pullipulli)
+"""
+
 import datetime
 import json
 import sys
@@ -20,6 +26,9 @@ from typing import Set
 
 
 class GenerateResults:
+    """
+    This class generates results for the given maps, agents, starts, goals, tasks and task frequencies.
+    """
     def __init__(self, maps: list[MapStats], tasks_num: list[int], tasks_frequency: list[float], agents_num: list[int],
                  start_num: list[int], goal_num: list[int], max_distance_traffic: int):
         self.simulation_number = len(maps) * len(tasks_num) * len(agents_num) * len(start_num) * len(
@@ -36,7 +45,12 @@ class GenerateResults:
         self.run_ids: Set[RunId] = set()
 
     def generate_results(self) -> None:
+        """
+        Generates the results for the given maps, agents, starts, goals, tasks and task frequencies.
+        Writes the results in a json file (saved in the ResultsJsons folder). The file name is the current date and time.
+        """
         def uniquify(path: str):
+            """Returns a unique path by adding a number to the end of the path if it already exists."""
             filename, extension = os.path.splitext(path)
             counter = 1
 
@@ -66,6 +80,19 @@ class GenerateResults:
                            start_to_pickup_times: list[float], pickup_to_goal_times: list[float],
                            actual_runtime: float, running_simulation: SimulationNewRecovery,
                            token_passing: TokenPassingRecovery) -> StatSimulation:
+        """
+        Memorizes the statistics of the current run.
+        It calculates the average start_to_goal_times, start_to_pickup_times, pickup_to_goal_times, serv_times, runtimes,
+        costs and earth_mover_distance.
+        :param old_stats:
+        :param start_to_goal_times:
+        :param start_to_pickup_times:
+        :param pickup_to_goal_times:
+        :param actual_runtime:
+        :param running_simulation:
+        :param token_passing:
+        :return:
+        """
         if running_simulation.time == 1:
             return {"costs": [0], "serv_times": [0], "start_to_pickup_times": [0], "pickup_to_goal_times": [0],
                     "runtimes": [actual_runtime], "earth_mover_dist": [running_simulation.get_earth_mover_distance()]}
@@ -128,6 +155,11 @@ class GenerateResults:
                     "earth_mover_dist": earth_mover_distance}
 
     def generate_output_map(self, map: MapStats):
+        """
+        Generates the output for the given map. It generates results for both fixed and learning cases.
+        :param map:
+        :return:
+        """
         for agents in self.agents_num:
             for starts in self.start_num:
                 for goals in self.goal_num:
@@ -156,6 +188,11 @@ class GenerateResults:
 
     @staticmethod
     def check_collisions(simulation: SimulationNewRecovery):
+        """
+        Checks the number of path and switch collisions in the simulation.
+        :param simulation:
+        :return:
+        """
         pathCollisions = 0
         switchCollisions = 0
         for agent in simulation.actual_paths.keys():
@@ -172,6 +209,18 @@ class GenerateResults:
 
     def simulate(self, map_dict: MapStats, map_name: str, agents_num: int, starts_num: int, goals_num: int, tasks_num: int, tasks_frequency: float,
                  learning=False) -> StatSimulation:
+        """
+        Simulates the given map with the given agents, starts, goals, tasks and task frequency. (fixed or learning case)
+        :param map_dict:
+        :param map_name:
+        :param agents_num:
+        :param starts_num:
+        :param goals_num:
+        :param tasks_num:
+        :param tasks_frequency:
+        :param learning:
+        :return:
+        """
         goal_locations = map_dict['map']['goal_locations']
         start_locations = map_dict['map']['start_locations']
 
@@ -286,6 +335,9 @@ class GenerateResults:
 
 if __name__ == '__main__':
     def positive_integer(value: str):
+        """
+        Check if the value is a positive integer. If not, raises an ArgumentTypeError.
+        """
         ivalue = int(value)
         if ivalue < 1:
             raise ArgumentTypeError("%s is an invalid positive int value" % value)

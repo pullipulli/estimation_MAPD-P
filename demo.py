@@ -1,3 +1,8 @@
+"""
+A little playground to test the simulation of TokenPassing and the animation of the solution.
+"""
+
+
 import argparse
 import datetime
 import json

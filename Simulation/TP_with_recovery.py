@@ -1,3 +1,8 @@
+"""
+Token Passing with Recovery algorithm implementation.
+This algorithm is used for task allocation in multi-agent systems. It is based on the Token Passing algorithm, but
+it also includes a recovery mechanism in case of deadlocks.
+"""
 from __future__ import annotations
 
 import math
@@ -20,6 +25,10 @@ def admissible_heuristic(pos1: Location, pos2: Location):
     return fabs(pos1[0] - pos2[0]) + fabs(pos1[1] - pos2[1])
 
 class TokenPassingRecovery(Observer):
+    """
+    The TokenPassingRecovery class is responsible for managing the token and the agents, and for executing the
+    algorithm. It uses the CBS algorithm for path planning.
+    """
     def __init__(self, agents: list[Agent], dimensions: Dimensions, max_time: int, obstacles: list[Location], non_task_endpoints: list[Location], simulation: SimulationNewRecovery,
                  starts: list[Location], a_star_max_iter=800000000, path_1_modified=False, path_2_modified=False,
                  preemption_radius=0, preemption_duration=0):
@@ -73,6 +82,10 @@ class TokenPassingRecovery(Observer):
         self.init_token()
 
     def init_token(self):
+        """
+        Initialize the token with the initial state of the simulation.
+        :return:
+        """
         for t in self.simulation.get_new_tasks():
             self.token['tasks'][t['task_name']] = [t['start'], t['goal']]
             self.token['start_tasks_times'][t['task_name']] = self.simulation.get_time()
@@ -82,22 +95,44 @@ class TokenPassingRecovery(Observer):
             self.token['path_ends'].add(tuple(a['start']))
 
     def increment_real_task_cost(self, task_name):
+        """
+        Increment the real cost of a task.
+        :param task_name:
+        :return:
+        """
         actual_cost = self.token['real_task_cost'].get(task_name, 0)
 
         self.token['real_task_cost'][task_name] = actual_cost + 1
 
     def get_task_name_from_agent(self, agent_name):
+        """
+        Get the name of the task assigned to an agent.
+        :param agent_name:
+        :return:
+        """
         if agent_name in self.token['agents_to_tasks']:
             return self.token['agents_to_tasks'][agent_name]['task_name']
         return None
 
     def get_estimated_task_costs(self):
+        """
+        Get the estimated cost of each task.
+        :return:
+        """
         return dict(self.token['estimated_cost_per_task'])
 
     def get_real_task_costs(self):
+        """
+        Get the real cost of each task.
+        :return:
+        """
         return dict(self.token['real_task_cost'])
 
     def get_idle_agents(self):
+        """
+        Get the agents that are idle.
+        :return:
+        """
         agents = {}
         for name, path in self.token['agents'].items():
             if len(path) == 1:
@@ -105,6 +140,12 @@ class TokenPassingRecovery(Observer):
         return agents
 
     def get_closest_task_name(self, available_tasks, agent_pos):
+        """
+        Get the name of the closest task to an agent.
+        :param available_tasks:
+        :param agent_pos:
+        :return:
+        """
         closest = random.choice(list(available_tasks.keys()))
         occupied = []
         for path in self.token['agents'].values():
@@ -117,6 +158,12 @@ class TokenPassingRecovery(Observer):
         return closest
 
     def get_moving_obstacles_agents(self, agents, time_start):
+        """
+        Get the moving obstacles for the agents.
+        :param agents:
+        :param time_start:
+        :return:
+        """
         obstacles = {}
         for name, path in agents.items():
             if len(path) > time_start and len(path) > 1:
@@ -129,6 +176,12 @@ class TokenPassingRecovery(Observer):
         return obstacles
 
     def get_idle_obstacles_agents(self, agents_paths, time_start):
+        """
+        Get the idle obstacles for the agents.
+        :param agents_paths:
+        :param time_start:
+        :return:
+        """
         obstacles = set()
         for path in agents_paths:
             if len(path) == 1:
@@ -138,6 +191,11 @@ class TokenPassingRecovery(Observer):
         return obstacles
 
     def check_safe_idle(self, agent_pos):
+        """
+        Check if an agent can safely idle in the agent_pos.
+        :param agent_pos:
+        :return:
+        """
         for task_name, task in self.token['tasks'].items():
             if tuple(task[0]) == tuple(agent_pos) or tuple(task[1]) == tuple(agent_pos):
                 return False
@@ -147,6 +205,12 @@ class TokenPassingRecovery(Observer):
         return True
 
     def check_reachable_task_endpoint(self, task, current_agent):
+        """
+        Check if a task endpoint is reachable by an agent.
+        :param task:
+        :param current_agent:
+        :return:
+        """
         for task_name, task1 in self.token['tasks'].items():
             if tuple(task1[0]) == tuple(task) or tuple(task1[1]) == tuple(task):
                 return False
@@ -161,6 +225,11 @@ class TokenPassingRecovery(Observer):
         return True
 
     def get_closest_non_task_endpoint(self, agent_pos):
+        """
+        Get the closest non-task endpoint to an agent.
+        :param agent_pos:
+        :return:
+        """
         dist = -1
         res = -1
         for endpoint in self.non_task_endpoints:
@@ -183,6 +252,11 @@ class TokenPassingRecovery(Observer):
         return res
 
     def get_preemption_zone(self, location):
+        """
+        Get the preemption zone of a location.
+        :param location:
+        :return:
+        """
         preempted_locations = self.get_preempted_locations()
         zone = []
         if location not in self.starts:
@@ -195,6 +269,10 @@ class TokenPassingRecovery(Observer):
         return list(set(zone))
 
     def get_preempted_locations(self):
+        """
+        Get the preempted locations.
+        :return:
+        """
         locations = []
         for zone in self.preempted_locations.values():
             for location in zone:
@@ -202,6 +280,13 @@ class TokenPassingRecovery(Observer):
         return list(locations)
 
     def get_best_idle_location(self, agent_pos, agent_name, best_task=None) -> [int, int]:
+        """
+        Get the best idle location for an agent.
+        :param agent_pos:
+        :param agent_name:
+        :param best_task:
+        :return:
+        """
         best_idle_distance = -1
         best_idle = [-1, -1]
         if best_task is not None and tuple(agent_pos) in self.starts and best_task in self.preempted_locations[
@@ -251,18 +336,31 @@ class TokenPassingRecovery(Observer):
         return best_idle
 
     def update_ends(self, agent_pos):
+        """
+        Update the ends of the paths.
+        :param agent_pos:
+        :return:
+        """
         if tuple(agent_pos) in self.token['path_ends']:
             self.token['path_ends'].remove(tuple(agent_pos))
         if tuple(agent_pos) in self.token['occupied_non_task_endpoints']:
             self.token['occupied_non_task_endpoints'].remove(tuple(agent_pos))
 
     def get_agents_to_tasks_goals(self):
+        """
+        Get the goals of the agents.
+        :return:
+        """
         goals = set()
         for el in self.token['agents_to_tasks'].values():
             goals.add(tuple(el['goal']))
         return goals
 
     def get_agents_to_tasks_starts_goals(self):
+        """
+        Get the starts and goals of the agents.
+        :return:
+        """
         starts_goals = set()
         for el in self.token['agents_to_tasks'].values():
             starts_goals.add(tuple(el['goal']))
@@ -270,25 +368,39 @@ class TokenPassingRecovery(Observer):
         return starts_goals
 
     def get_completed_tasks(self):
+        """Get the number of completed tasks."""
         return self.token['completed_tasks']
 
     def get_completed_tasks_times(self):
+        """Get the times of the completed tasks."""
         return self.token['completed_tasks_times']
 
     def get_pick_up_tasks_times(self):
+        """Get the times of the pick-up tasks."""
         return self.token['pick_up_tasks_times']
 
     def get_start_tasks_times(self):
+        """Get the times of the start tasks."""
         return self.token['start_tasks_times']
 
     def get_token(self):
+        """Get the token."""
         return self.token
 
     def search(self, cbs):
+        """Search for a path using the CBS algorithm."""
         path = cbs.search()
         return path
 
     def go_to_closest_non_task_endpoint(self, agent_name, agent_pos, all_idle_agents, path_modified):
+        """
+        Go to the closest non-task endpoint. (or the best idle location, depending on the path_modified parameter)
+        :param agent_name:
+        :param agent_pos:
+        :param all_idle_agents:
+        :param path_modified:
+        :return:
+        """
         best_idle_location = None
         closest_non_task_endpoint = None
         if path_modified:
@@ -331,6 +443,12 @@ class TokenPassingRecovery(Observer):
             self.deadlock_recovery(agent_name, agent_pos, all_idle_agents, 4)
 
     def get_random_close_cell(self, agent_pos, r):
+        """
+        Get a random close cell to an agent.
+        :param agent_pos:
+        :param r:
+        :return:
+        """
         while True:
             cell = (
                 agent_pos[0] + random.choice(range(-r - 1, r + 1)), agent_pos[1] + random.choice(range(-r - 1, r + 1)))
@@ -341,6 +459,14 @@ class TokenPassingRecovery(Observer):
                 return cell
 
     def deadlock_recovery(self, agent_name, agent_pos, all_idle_agents, r):
+        """
+        Recover from a deadlock after a certain number of attempts.
+        :param agent_name:
+        :param agent_pos:
+        :param all_idle_agents:
+        :param r:
+        :return:
+        """
         print("DEADLOCK ", agent_name)
         self.token['deadlock_count_per_agent'][agent_name] += 1
         if self.token['deadlock_count_per_agent'][agent_name] >= 5:
@@ -366,6 +492,11 @@ class TokenPassingRecovery(Observer):
                 print("Deadlock recovery failed ", agent_name)
 
     def time_forward(self):
+        """
+        Move the time forward.
+        Update the completed tasks, collect new tasks, and assign them if possible.
+        :return:
+        """
         # Update completed tasks
         for agent_name in self.token['agents']:
             pos = self.simulation.actual_paths[agent_name][-1]
@@ -496,7 +627,15 @@ class TokenPassingRecovery(Observer):
                 self.go_to_closest_non_task_endpoint(agent_name, agent_pos, all_idle_agents, self.path_2_modified)
 
     def update(self, observable: Observable, *args, **kwargs):
+        """
+        Update the task_distribution if the simulation is learning.
+        :param observable:
+        :param args:
+        :param kwargs:
+        :return:
+        """
         self.learned_task_distribution = dict(self.simulation.get_learned_task_distribution())
 
     def print(self, string: str):
+        """Print a string with the current time."""
         print("TIME " + str(self.simulation.time) + ": " + string)

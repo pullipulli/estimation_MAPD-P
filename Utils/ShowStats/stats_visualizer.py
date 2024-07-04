@@ -1,3 +1,7 @@
+"""
+This module contains the StatsVisualizer class that allows to visualize the statistics of the simulations.
+author: Andrea Pullia (@pullipulli)
+"""
 from collections import defaultdict
 
 import numpy as np
@@ -22,6 +26,9 @@ TIME_EVOLUTION_NAMES = ["serv_times", "pickup_to_goal_times", "start_to_pickup_t
 
 
 class StatsVisualizer:
+    """
+    Class that allows to visualize the statistics of the simulations.
+    """
     def __init__(self, maps: list[MapOutput], agents_num: list[int], tasks_num: list[int],
                  task_frequency_num: list[float], pickup_num: list[int], goal_num: list[int]):
         self.maps = maps
@@ -48,12 +55,15 @@ class StatsVisualizer:
         self.fontSize = 12
 
     def get_map_names(self):
+        """Get the names of the maps."""
         return self.map_names
 
     def get_variable_config_parameter(self):
+        """Get the variable parameter of the configuration."""
         return self.variable_param
 
     def stats_of(self, map_dict: MapOutput = None, run_id: RunId = None):
+        """Get the statistics of a simulation run."""
         if run_id is not None:
             map_dict = [map for map in self.maps if map["run_id"] == run_id][0]
 
@@ -103,6 +113,7 @@ class StatsVisualizer:
             "traffic"]
 
     def get_run_ids_from_map(self, map_name: MapName):
+        """Get the run ids of the simulations of a map."""
         run_ids = []
         for map in self.maps:
             config = self.stats_of(map)[0]
@@ -111,6 +122,13 @@ class StatsVisualizer:
         return run_ids
 
     def show_double_bar_time_metric(self, map_name: MapName, ax: list[list[Axes]], row_number=2):
+        """
+        Show the double bar plot of the time metrics.
+        :param map_name:
+        :param ax:
+        :param row_number:
+        :return:
+        """
         run_ids = self.get_run_ids_from_map(map_name)
 
         # set width of bar
@@ -184,6 +202,12 @@ class StatsVisualizer:
         plt.show()
 
     def show_metric_evolution(self, map_name: str, ax: Axes | list[Axes] | list[list[Axes]]):
+        """
+        Show the evolution of some metrics.
+        :param map_name:
+        :param ax:
+        :return:
+        """
         run_ids = self.get_run_ids_from_map(map_name)
 
         run_index = 0
@@ -229,6 +253,12 @@ class StatsVisualizer:
         plt.show()
 
     def show_real_vs_estimated_avg_costs(self, map_name: MapName, ax: Axes | list[Axes]):
+        """
+        Show the average real and estimated costs.
+        :param map_name:
+        :param ax:
+        :return:
+        """
         run_ids = self.get_run_ids_from_map(map_name)
 
         barWidth = 0.25
@@ -275,6 +305,11 @@ class StatsVisualizer:
         plt.show()
 
     def show_traffic_evolution(self, map_name: MapName):
+        """
+        Show the evolution of the traffic with a heatmap.
+        :param map_name:
+        :return:
+        """
         run_ids = self.get_run_ids_from_map(map_name)
 
         for run_id in run_ids:
@@ -317,6 +352,11 @@ class StatsVisualizer:
             plt.show()
 
     def show_all_metrics(self, map_name: MapName):
+        """
+        Show all the metrics of the simulation.
+        :param map_name:
+        :return:
+        """
         width_coefficient = 7
         height_coefficient = 7
         run_ids = self.get_run_ids_from_map(map_name)
