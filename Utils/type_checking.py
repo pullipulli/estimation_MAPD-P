@@ -17,7 +17,7 @@ TaskDistribution: TypeAlias = dict[Location | tuple[Location], int | float]
 
 Task = TypedDict('Task', {'start': Location, 'goal': Location, 'start_time': Time, 'task_name': TaskName})
 
-Agent = TypedDict('Agent', {'name': AgentName, 'start': Location})
+Agent = TypedDict('Agent', {'name': AgentName, 'start': Location, 'goal': NotRequired[Location]})
 
 Map = TypedDict('Map', {'dimensions': Dimensions, 'obstacles': list[Location], 'non_task_endpoints': list[Location],
                         'start_locations': list[Location], 'goal_locations': list[Location]})

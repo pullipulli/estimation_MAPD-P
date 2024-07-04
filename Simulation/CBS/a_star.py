@@ -3,12 +3,23 @@ AStar search
 author: Ashwin Bose (@atb033)
 author: Giacomo Lodigiani (@Lodz97)
 """
+from __future__ import annotations
+
 import heapq
 from itertools import count
+from typing import TYPE_CHECKING
+
+from Utils.type_checking import AgentName
+
+if TYPE_CHECKING:
+    from cbs import Environment, State
 
 
 class AStar:
-    def __init__(self, env):
+    """
+    Represents an A* search algorithm instance
+    """
+    def __init__(self, env: Environment):
         self.agent_dict = env.agent_dict
         self.admissible_heuristic = env.admissible_heuristic
         self.is_at_goal = env.is_at_goal
@@ -16,16 +27,24 @@ class AStar:
         self.max_iter = env.a_star_max_iter
         self.iter = 0
 
-    def reconstruct_path(self, came_from, current):
+    @staticmethod
+    def reconstruct_path(came_from: dict[State, State], current: State) -> list[State]:
+        """
+        Reconstruct the path from the came_from to the current position
+        :param came_from:
+        :param current:
+        :return: The path from came_from to current
+        """
         total_path = [current]
         while current in came_from.keys():
             current = came_from[current]
             total_path.append(current)
         return total_path[::-1]
 
-    def search(self, agent_name):
+    def search(self, agent_name: AgentName) -> list[State] | False:
         """
-        low level search
+        Perform an A* search from the start location to the goal location for the given agent name and
+        return the path (if found) or False otherwise
         """
         initial_state = self.agent_dict[agent_name]["start"]
         step_cost = 1
@@ -49,8 +68,6 @@ class AStar:
             self.iter = self.iter + 1
             if self.iter == self.max_iter:
                 print('Low level A* - Maximum iteration reached')
-            # temp_dict = {open_item: f_score.setdefault(open_item, float("inf")) for open_item in open_set}
-            # current = min(temp_dict, key=temp_dict.get)
             current = heapq.heappop(heap)[3]
 
             if self.is_at_goal(current, agent_name):
