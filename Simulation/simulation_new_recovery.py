@@ -113,16 +113,21 @@ class SimulationNewRecovery(Observable):
 
         newRow = [0] * self.max_distance_traffic
 
-        for agent1 in self.agents:
-            for agent2 in self.agents:
-                if agent1['name'] != agent2['name']:
-                    agent1_pos = self.actual_paths[agent1['name']][-1]
-                    agent2_pos = self.actual_paths[agent2['name']][-1]
-                    distance = math.floor(admissible_heuristic((agent1_pos['x'], agent1_pos['y']),
-                                                               (agent2_pos['x'], agent2_pos['y'])))
+        for maxDist in range(1, self.max_distance_traffic + 1):
+            encountered_couples = set()
+            for agent1 in self.agents:
+                for agent2 in self.agents:
+                    if agent1['name'] != agent2['name'] and (agent1['name'], agent2['name']) not in encountered_couples:
+                        encountered_couples.add((agent1['name'], agent2['name']))
+                        encountered_couples.add((agent2['name'], agent1['name']))
+                        agent1_pos = self.actual_paths[agent1['name']][-1]
+                        agent2_pos = self.actual_paths[agent2['name']][-1]
 
-                    if 0 < distance <= self.max_distance_traffic:
-                        newRow[distance-1] += 0.5  # couples of agents (so we need to add 2 0.5 to have 1 couple)
+                        distance = round(admissible_heuristic((agent1_pos['x'], agent1_pos['y']),
+                                                              (agent2_pos['x'], agent2_pos['y'])))
+                        if distance <= maxDist:
+                            newRow[maxDist - 1] += 1
+
 
         self.traffic_matrix.append(newRow)
 

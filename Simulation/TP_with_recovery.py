@@ -8,7 +8,7 @@ from __future__ import annotations
 import math
 import random
 from collections import defaultdict
-from math import fabs
+from math import dist
 
 from Simulation.CBS.cbs import CBS, Environment
 from Utils.observer_pattern import Observer, Observable
@@ -21,10 +21,11 @@ if typing.TYPE_CHECKING:
 
 
 def admissible_heuristic(pos1: Location, pos2: Location):
-    """Manhattan distance between two positions."""
+    """Euclidean distance between two positions."""
     if pos1 is None or pos2 is None:
         return math.inf
-    return fabs(pos1[0] - pos2[0]) + fabs(pos1[1] - pos2[1])
+
+    return dist(pos1, pos2)
 
 
 class TokenPassingRecovery(Observer):
