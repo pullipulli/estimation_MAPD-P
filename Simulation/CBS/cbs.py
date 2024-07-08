@@ -5,6 +5,7 @@ author: Giacomo Lodigiani (@Lodz97)
 """
 from __future__ import annotations
 
+import abc
 import sys
 import argparse
 import yaml
@@ -143,6 +144,24 @@ class Constraints(object):
 class Environment(object):
     """
     Class to represent the environment in which the agents are moving
+    :param dimension: the dimensions of the grid
+    :param agents: the list of agents with their start and goal locations
+    :param obstacles: the set of obstacles/idle agents in the grid
+    :param moving_obstacles: the set of moving agents/obstacles in the grid
+    :param a_star_max_iter: the maximum number of iterations for the A* search
+
+    Attributes:
+
+    - :class:`agent_dict` --> for each `AgentName` we have the start and goal `State`
+    - :class:`constraints` --> Current constraints in the environment
+    - :class:`constraint_dict` --> For each agent we have the constraints that apply to it (vertex and edge)
+    - :class:`a_star` --> A* search algorithm instance
+    - :class:`dimension`: the dimensions of the grid
+    - :class:`agents`: the list of agents with their start and goal locations
+    - :class:`obstacles`: the set of obstacles/idle agents in the grid
+    - :class:`moving_obstacles`: the set of moving agents/obstacles in the grid
+    - :class:`a_star_max_iter`: the maximum number of iterations for the A* search
+
     """
     def __init__(self, dimension: Dimensions, agents: list[Agent], obstacles: set[Location],
                  moving_obstacles: dict[LocationAtTime, Agent] = None, a_star_max_iter=-1):
@@ -193,11 +212,9 @@ class Environment(object):
             neighbors.append(n)
         return neighbors
 
-    def get_first_conflict(self, solution: dict[Agent, list[State]]):
+    def get_first_conflict(self, solution: dict[AgentName, list[State]]) -> Conflict | False:
         """
         Get the first conflict in the solution (if any)
-        :param solution:
-        :return:
         """
         max_t = max([len(plan) for plan in solution.values()])
         result = Conflict()
@@ -231,9 +248,9 @@ class Environment(object):
         return False
 
     @staticmethod
-    def create_constraints_from_conflict(conflict: Conflict):
+    def create_constraints_from_conflict(conflict: Conflict) -> dict[AgentName, Constraints]:
         """
-        Create constraints from a conflict
+        Create constraints for each agent from a conflict
         :param conflict:
         :return:
         """
@@ -261,7 +278,7 @@ class Environment(object):
         return constraint_dict
 
     @staticmethod
-    def get_state(agent_name: AgentName, solution, t):
+    def get_state(agent_name: AgentName, solution, t) -> State:
         """
         Get the state of an agent at a certain time (or the last state)
         :param agent_name:
@@ -274,7 +291,7 @@ class Environment(object):
         else:
             return solution[agent_name][-1]
 
-    def get_all_obstacles(self, time: int | float):
+    def get_all_obstacles(self, time: int | float) -> set[Location]:
         """
         Get all obstacles at a certain time
         :param time:
@@ -298,12 +315,12 @@ class Environment(object):
             and (state.location.x, state.location.y) not in self.get_all_obstacles(state.time) \
             and (state.location.x, state.location.y, state.time) not in self.moving_obstacles
 
-    def transition_valid(self, state_1, state_2):
+    def transition_valid(self, state_1: State, state_2: State) -> bool:
         """
         Check if a transition between two states is valid (if there is no edge constraint between them)
         :param state_1:
         :param state_2:
-        :return:
+        :return: True if the transition is valid, False otherwise
         """
         tup_1 = (state_1.location.x, state_1.location.y, state_2.time)
         tup_2 = (state_2.location.x, state_2.location.y, state_1.time)
@@ -312,12 +329,18 @@ class Environment(object):
             return False
         return EdgeConstraint(state_1.time, state_1.location, state_2.location) not in self.constraints.edge_constraints
 
-    def is_solution(self, agent_name):
+    @abc.abstractmethod
+    def is_solution(self, agent_name: AgentName):
+        """
+        Check if a state is a solution for an agent
+        :param agent_name:
+        :return:
+        """
         pass
 
-    def admissible_heuristic(self, state, agent_name):
+    def admissible_heuristic(self, state: State, agent_name: AgentName) -> float:
         """
-        Admissible heuristic for the A* search (Manhattan distance to the goal)
+        Admissible heuristic for the A* search (Manhattan distance from the state to the goal of the agent)
         :param state:
         :param agent_name:
         :return:
@@ -325,7 +348,7 @@ class Environment(object):
         goal = self.agent_dict[agent_name]["goal"]
         return fabs(state.location.x - goal.location.x) + fabs(state.location.y - goal.location.y)
 
-    def is_at_goal(self, state, agent_name):
+    def is_at_goal(self, state: State, agent_name: AgentName) -> bool:
         """
         Check if a state is at the goal of an agent
         :param state:
@@ -335,9 +358,9 @@ class Environment(object):
         goal_state = self.agent_dict[agent_name]["goal"]
         return state.is_equal_except_time(goal_state)
 
-    def make_agent_dict(self):
+    def make_agent_dict(self) -> None:
         """
-        Create a dictionary of agents (self.agent_dict) where for each agent name we have the start and goal State
+        Update self.agent_dict where for each agent name we have the start and goal State
         """
         for agent in self.agents:
             start_state = State(0, Location(agent['start'][0], agent['start'][1]))
@@ -345,7 +368,7 @@ class Environment(object):
 
             self.agent_dict.update({agent['name']: {'start': start_state, 'goal': goal_state}})
 
-    def compute_solution(self):
+    def compute_solution(self) -> dict[Agent, list[Location]] | False:
         """
         Compute the solution for all agents
         :return:
@@ -360,7 +383,7 @@ class Environment(object):
         return solution
 
     @staticmethod
-    def compute_solution_cost(solution: dict[Agent, list[Location]]):
+    def compute_solution_cost(solution: dict[Agent, list[Location]]) -> int:
         """
         Compute the cost of a solution
         :param solution:
@@ -392,16 +415,26 @@ class HighLevelNode(object):
 class CBS(object):
     """
     Class to represent the Conflict-based search algorithm
+
+    :param environment: the environment in which the agents are moving
+
+    Attributes:
+
+    - :class:`env` --> the environment in which the agents are moving
+    - :class:`open_set` --> The set of nodes to be expanded
+    - :class:`closed_set` --> The set of nodes already expanded
+
     """
+
     def __init__(self, environment: Environment):
         self.env = environment
         self.open_set = set()
         self.closed_set = set()
 
-    def search(self):
+    def search(self) -> dict[Agent, list[LocationAtTime]]:
         """
         Perform the CBS search algorithm and return the solution (if found)
-        :return:
+        :return: the solution of the CBS search algorithm (a dictionary of agent names and their paths)
         """
         start = HighLevelNode()
         # TODO: Initialize it in a better way
@@ -446,7 +479,7 @@ class CBS(object):
         return {}
 
     @staticmethod
-    def generate_plan(solution):
+    def generate_plan(solution) -> dict[Agent, list[LocationAtTime]]:
         """
         Generate a plan from the solution (a dictionary of agent names and their paths)
         :param solution:

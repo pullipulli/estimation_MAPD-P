@@ -124,10 +124,9 @@ class StatsVisualizer:
     def show_double_bar_time_metric(self, map_name: MapName, ax: list[list[Axes]], row_number=2):
         """
         Show the double bar plot of the time metrics.
-        :param map_name:
-        :param ax:
-        :param row_number:
-        :return:
+        :param map_name: The name of the map to show the metrics of.
+        :param ax: The axes to plot the data on
+        :param row_number: The number of rows to plot the data on
         """
         run_ids = self.get_run_ids_from_map(map_name)
 
@@ -201,12 +200,12 @@ class StatsVisualizer:
         plt.tight_layout()
         plt.show()
 
-    def show_metric_evolution(self, map_name: str, ax: Axes | list[Axes] | list[list[Axes]]):
+    def show_metric_evolution(self, map_name: str, ax: Axes | list[Axes] | list[list[Axes]]) -> None:
         """
         Show the evolution of some metrics.
-        :param map_name:
-        :param ax:
-        :return:
+        :param map_name: The name of the map to show the metrics of.
+        :param ax: The axes to plot the data on (if there are multiple subplots, ax is a list (or a list of lists) of
+        Axes, one for each subplot).
         """
         run_ids = self.get_run_ids_from_map(map_name)
 
@@ -252,12 +251,11 @@ class StatsVisualizer:
         plt.tight_layout()
         plt.show()
 
-    def show_real_vs_estimated_avg_costs(self, map_name: MapName, ax: Axes | list[Axes]):
+    def show_real_vs_estimated_avg_costs(self, map_name: MapName, ax: Axes | list[Axes]) -> None:
         """
         Show the average real and estimated costs.
-        :param map_name:
-        :param ax:
-        :return:
+        :param map_name: The name of the map to show and compare the estimated and real costs of.
+        :param ax: The axes to plot the data on (if there are multiple subplots, ax is a list of Axes, one for each subplot).
         """
         run_ids = self.get_run_ids_from_map(map_name)
 
@@ -304,11 +302,10 @@ class StatsVisualizer:
         plt.tight_layout()
         plt.show()
 
-    def show_traffic_evolution(self, map_name: MapName):
+    def show_traffic_evolution(self, map_name: MapName) -> None:
         """
         Show the evolution of the traffic with a heatmap.
-        :param map_name:
-        :return:
+        :param map_name: The name of the map to show the traffic evolution of.
         """
         run_ids = self.get_run_ids_from_map(map_name)
 
@@ -351,11 +348,10 @@ class StatsVisualizer:
             plt.tight_layout()
             plt.show()
 
-    def show_all_metrics(self, map_name: MapName):
+    def show_all_metrics(self, map_name: MapName) -> None:
         """
         Show all the metrics of the simulation.
-        :param map_name:
-        :return:
+        :param map_name: The name of the map to show the metrics of.
         """
         width_coefficient = 7
         height_coefficient = 7

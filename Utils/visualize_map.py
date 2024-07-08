@@ -18,6 +18,13 @@ Colors = ['orange', 'blue', 'green']
 
 
 def showMap(map, map_name="map", legend=True):
+    """
+    This function visualizes the map.
+    :param map: The map dict to visualize
+    :param map_name: The name to save the map as a png
+    :param legend: If True, the legend is shown. If False, the legend is hidden.
+    :return:
+    """
     map = map["map"]
     aspect = map["dimensions"][0] / map["dimensions"][1]
 

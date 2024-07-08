@@ -18,6 +18,17 @@ if TYPE_CHECKING:
 class AStar:
     """
     Represents an A* search algorithm instance
+
+    :param env: The environment in which the search is performed
+
+    Attributes:
+
+    - :class:`agent_dict`: A dictionary containing the agents in the environment
+    - :class:`admissible_heuristic`: The admissible heuristic function
+    - :class:`is_at_goal`: The function that checks if the agent is at the goal
+    - :class:`get_neighbors`: The function that returns the neighbors of a state
+    - :class:`max_iter`: The maximum number of iterations allowed for the search
+    - :class:`iter`: The current iteration of the search
     """
     def __init__(self, env: Environment):
         self.agent_dict = env.agent_dict

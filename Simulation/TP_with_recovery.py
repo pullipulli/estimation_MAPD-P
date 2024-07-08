@@ -12,7 +12,8 @@ from math import fabs
 
 from Simulation.CBS.cbs import CBS, Environment
 from Utils.observer_pattern import Observer, Observable
-from Utils.type_checking import Agent, Location, Dimensions, Token, LocationAtTime, PreemptionZones, PreemptedLocations
+from Utils.type_checking import Agent, Location, Dimensions, Token, LocationAtTime, PreemptionZones, PreemptedLocations, \
+    AgentName
 import typing
 
 if typing.TYPE_CHECKING:
@@ -30,6 +31,7 @@ class TokenPassingRecovery(Observer):
     """
     The TokenPassingRecovery class is responsible for managing the token and the agents, and for executing the
     algorithm. It uses the CBS algorithm for path planning.
+    TODO: Add more detailed description.
     """
     def __init__(self, agents: list[Agent], dimensions: Dimensions, max_time: int, obstacles: list[Location], non_task_endpoints: list[Location], simulation: SimulationNewRecovery,
                  starts: list[Location], a_star_max_iter=800000000, path_1_modified=False, path_2_modified=False,
@@ -389,7 +391,7 @@ class TokenPassingRecovery(Observer):
         """Get the token."""
         return self.token
 
-    def search(self, cbs):
+    def search(self, cbs: CBS) -> dict[Agent, list[LocationAtTime]]:
         """Search for a path using the CBS algorithm."""
         path = cbs.search()
         return path
@@ -572,7 +574,7 @@ class TokenPassingRecovery(Observer):
                     env = Environment(self.dimensions, [agent], self.obstacles | idle_obstacles_agents,
                                       moving_obstacles_agents, a_star_max_iter=self.a_star_max_iter)
                     cbs = CBS(env)
-                    path_to_task_start: list[LocationAtTime] = self.search(cbs)
+                    path_to_task_start = self.search(cbs)
                     if path_to_task_start:
                         cost1 = env.compute_solution_cost(path_to_task_start)
 

@@ -100,11 +100,11 @@ class Animation:
                                             blit=True,
                                             repeat=False)
 
-    def save(self, file_name, speed=2):
+    def save(self, file_name: str, speed=2) -> None:
         """
         Save the animation to a GIF file.
-        :param file_name: 
-        :param speed: 
+        :param file_name: name of the file to save the animation to
+        :param speed: speed of the animation
         :return: 
         """
         writer = animation.ImageMagickFileWriter(fps=10 * speed)

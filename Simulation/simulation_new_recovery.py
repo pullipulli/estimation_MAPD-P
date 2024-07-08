@@ -19,6 +19,31 @@ class SimulationNewRecovery(Observable):
     This class is used to simulate the execution of the algorithm with the recovery mechanism.
     The simulation is done by moving the agents (it also updates the traffic matrix).
     The simulation can also learn the task distribution and update it every update_time.
+
+    :param tasks: list of tasks
+    :param agents: list of agents
+    :param task_distributions: list of task distributions at each timestep
+    :param learn_task_distribution: boolean to know if the task distribution should be learned or not
+    :param update_time: time between two updates of the learned task distribution (if learn_task_distribution is True)
+    :param last_task_time: time when there are no more tasks
+    :param max_time: maximum limit of the simulation time
+    :param max_distance_traffic: maximum distance for the traffic matrix
+
+    Attributes:
+    - :class:`tasks`: list of tasks
+    - :class:`agents`: list of agents
+    - :class:`task_distribution`: list of task distributions at each timestep
+    - :class:`learn_task_distribution`: boolean to know if the task distribution should be learned or not
+    - :class:`learned_task_distribution`: learned task distribution
+    - :class:`time`: current simulation time
+    - :class:`agents_cost`: sum of agents cost (number of agents that moved or stayed at the same position at each timestep)
+    - :class:`actual_paths`: actual paths of the agents at each timestep (x, y coordinates)
+    - :class:`algo_time`: real time spent in the algorithm
+    - :class:`max_time`: maximum limit of the simulation time
+    - :class:`max_distance_traffic`: maximum distance for the traffic matrix
+    - :class:`traffic_matrix`: traffic matrix at each timestep (number of couples of agents at each distance)
+    - :class:`update_time`: time between two updates of the learned task distribution (if learn_task_distribution is True)
+    - :class:`last_task_time`: time when there are no more tasks
     """
 
     def __init__(self, tasks: list[Task], agents: list[Agent], task_distributions: list[TaskDistribution] = None,
@@ -34,7 +59,6 @@ class SimulationNewRecovery(Observable):
         self.learned_task_distribution: TaskDistribution = dict()
         self.time = 0
         self.agents_cost = 0
-        self.agents_moved = set()
         self.actual_paths: dict[AgentName, list[LocationAtTime]] = {}
         self.algo_time: float = 0
         self.max_time = max_time
@@ -42,20 +66,16 @@ class SimulationNewRecovery(Observable):
         self.traffic_matrix: list[list[int]] = []
         self.initialize_simulation()
 
-    def initialize_simulation(self):
-        """
-        Initialize the simulation by setting the initial paths of the agents in actual_paths.
-        :return:
-        """
+    def initialize_simulation(self) -> None:
+        """Initialize the simulation by setting the initial paths of the agents in actual_paths."""
         for agent in self.agents:
             self.actual_paths[agent['name']] = [{'t': 0, 'x': agent['start'][0], 'y': agent['start'][1]}]
 
-    def time_forward(self, algorithm):
+    def time_forward(self, algorithm) -> None:
         """
         Move the agents and update the traffic matrix.
         Update the learned task distribution if needed.
-        :param algorithm:
-        :return:
+        :param algorithm: the algorithm to use to move the agents
         """
         self.time = self.time + 1
 
@@ -136,7 +156,7 @@ class SimulationNewRecovery(Observable):
     def get_new_tasks(self) -> list[Task]:
         """
         Get the tasks that start at the current time.
-        :return:
+        :return: the tasks that start at the current time
         """
         new = []
         for t in self.tasks:
@@ -147,7 +167,7 @@ class SimulationNewRecovery(Observable):
     def get_learned_task_distribution(self) -> TaskDistribution:
         """
         Get the learned (relative) task distribution.
-        :return:
+        :return: the learned task distribution
         """
         freq_task_distribution = dict()
 
@@ -159,25 +179,25 @@ class SimulationNewRecovery(Observable):
     def get_fixed_task_distribution_at_t(self, t) -> TaskDistribution:
         """
         Get the fixed task distribution at time t.
-        :param t:
-        :return:
+        :param t: time
+        :return: the fixed task distribution at t
         """
         if len(self.task_distribution) <= t:
             return dict()
 
         return dict(self.task_distribution[t])
 
-    def get_number_of_assigned_tasks(self):
+    def get_number_of_assigned_tasks(self) -> int:
         """
         Get the number of assigned tasks.
-        :return:
+        :return: the number of assigned tasks
         """
         return sum(self.learned_task_distribution.values())
 
-    def get_earth_mover_distance(self):
+    def get_earth_mover_distance(self) -> float:
         """
         Compute the earth mover distance between the fixed task distribution and the learned task distribution.
-        :return:
+        :return: the earth mover distance
         """
         learned_td = self.get_learned_task_distribution()
         fixed_td = self.get_fixed_task_distribution_at_t(self.time)
