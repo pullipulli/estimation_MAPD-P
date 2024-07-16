@@ -9,15 +9,43 @@ import re
 import yaml
 import RootPath
 
-if __name__ == '__main__':
+
+def is_valid_agent_location(locations, agent_location):
+    if agent_location in locations:
+        return False
+
+    for location in locations:
+        if abs(location[0] - agent_location[0]) <= 2 and abs(location[1] - agent_location[1]) <= 2:
+            return False
+
+    return True
+
+
+def random_agents_locations(free_locations, num_agents):
+    free_locs = list(free_locations)
+    agent_locations = []
+
+    for i in range(num_agents):
+        agent_location = random.choice(free_locs)
+        free_locs.remove(agent_location)
+
+        if is_valid_agent_location(agent_locations, agent_location):
+            agent_locations.append(agent_location)
+        else:
+            i -= 1
+
+    return agent_locations
+
+
+def map_converter(map_name: str):
     yaml_dic = {}
-    with open(os.path.join(os.path.join(RootPath.get_root(), 'Benchmarks'), 'den308d.map')) as ascii_map:
+    with open(os.path.join(os.path.join(RootPath.get_root(), 'Benchmarks'), map_name + '.map')) as ascii_map:
         ascii_map.readline()
         h = int(re.findall(r'\d+', ascii_map.readline())[0])
         w = int(re.findall(r'\d+', ascii_map.readline())[0])
-        yaml_dic['agents'] = [{'start': [48, 10], 'name': 'agent0'}]
-        yaml_dic['map'] = {'dimensions': [w, h], 'obstacles': [], 'non_task_endpoints': [[48, 10]],
-                           'start_locations': [[50, 10]], 'goal_locations': [[54, 10]]}
+        yaml_dic['agents'] = []
+        yaml_dic['map'] = {'dimensions': [w, h], 'obstacles': [], 'non_task_endpoints': [],
+                           'start_locations': [], 'goal_locations': []}
         ascii_map.readline()
         free_locations = []
         start_locations = []
@@ -31,11 +59,12 @@ if __name__ == '__main__':
                     yaml_dic['map']['obstacles'].append((j, i))
                 else:
                     free_locations.append([j, i])
-        start_locations = random.sample(free_locations, 15)
-        free_locations = list(set(free_locations).difference(set(start_locations)))
-        goal_locations = random.sample(free_locations, 10)
-        free_locations = list(set(free_locations).difference(set(goal_locations)))
-        agents_locations = random.sample(free_locations, 10)
+        start_locations = random.sample(free_locations, 50)
+
+        free_locations = [x for x in free_locations if x not in start_locations]
+        goal_locations = random.sample(free_locations, 40)
+        free_locations = [x for x in free_locations if x not in goal_locations]
+        agents_locations = random_agents_locations(free_locations, 80)
         agents = []
         locs = []
         i = 0
@@ -50,6 +79,9 @@ if __name__ == '__main__':
 
     with open(os.path.join(RootPath.get_root(), 'config.json'), 'r') as json_file:
         config = json.load(json_file)
-    with open(os.path.join(os.path.join(RootPath.get_root(), config['input_path']), 'den308d.yaml'),
+    with open(os.path.join(os.path.join(RootPath.get_root(), config['input_path']), map_name + '.yaml'),
               'w') as param_file:
         yaml.dump(yaml_dic, param_file)
+
+if __name__ == '__main__':
+    map_converter('den312d')

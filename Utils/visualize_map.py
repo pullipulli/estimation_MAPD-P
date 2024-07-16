@@ -2,7 +2,7 @@
 This script is used to visualize a map from a yaml file.
 The map is visualized using matplotlib.
 The map is saved as a png file in the maps_pngs folder.
-It shows all the possible start locations (orange), goal locations (green), obstacles (black) and non-task endpoints (green circles).
+It shows all the possible start locations (orange), goal locations (red), obstacles (black) and non-task endpoints (green circles).
 The legend is shown by default. If you want to hide it, set the legend parameter to False.
 If the legend is hidden, the start locations are marked with an "S", the goal locations with a "G" and if the locations are both goal and start, they are marked with a "B".
 author: Andrea Pullia (@pullipulli)
@@ -13,9 +13,6 @@ import matplotlib.pyplot as plt
 import os
 import RootPath
 import yaml
-
-Colors = ['orange', 'blue', 'green']
-
 
 def showMap(map, map_name="map", legend=True):
     """
@@ -60,7 +57,7 @@ def showMap(map, map_name="map", legend=True):
     for s in map["start_locations"]:
         if s in map["goal_locations"]:
             patches.append(
-                Rectangle((s[0] - 0.5, s[1] - 0.5), 1, 1, facecolor=Colors[0],
+                Rectangle((s[0] - 0.5, s[1] - 0.5), 1, 1, facecolor='orange',
                           edgecolor='black',
                           alpha=0.5))
             if not legend:
@@ -72,7 +69,7 @@ def showMap(map, map_name="map", legend=True):
             map["goal_locations"].remove(s)
         else:
             patches.append(
-                Rectangle((s[0] - 0.5, s[1] - 0.5), 1, 1, facecolor=Colors[1],
+                Rectangle((s[0] - 0.5, s[1] - 0.5), 1, 1, facecolor='blue',
                           edgecolor='black',
                           alpha=0.5))
             if not legend:
@@ -83,7 +80,7 @@ def showMap(map, map_name="map", legend=True):
     
     for g in map["goal_locations"]:
         patches.append(
-            Rectangle((g[0] - 0.5, g[1] - 0.5), 1, 1, facecolor=Colors[2],
+            Rectangle((g[0] - 0.5, g[1] - 0.5), 1, 1, facecolor='red',
                       edgecolor='black',
                       alpha=0.5))
         if not legend:
@@ -99,17 +96,18 @@ def showMap(map, map_name="map", legend=True):
         ax.add_artist(a)
 
     if legend:
-        both_patch = Patch(facecolor=Colors[0], label='Start and Goal')
-        start_patch = Patch(facecolor=Colors[1], label='Start')
-        goal_patch = Patch(facecolor=Colors[2], label='Goal')
-        plt.legend(handles=[both_patch, start_patch, goal_patch], loc="upper right", framealpha=0.5)
+        both_patch = Patch(facecolor='orange', label='Start and Goal')
+        start_patch = Patch(facecolor='blue', label='Start')
+        goal_patch = Patch(facecolor='red', label='Goal')
+        non_task_endpoint_patch = Patch(facecolor='green', label='Non-task endpoint')
+        plt.legend(handles=[both_patch, start_patch, goal_patch, non_task_endpoint_patch], loc="upper right", framealpha=0.5)
 
     plt.savefig("./maps_pngs/" + map_name + ".png", dpi=300)
     plt.show()
 
 
 if __name__ == '__main__':
-    map_name = "input_warehouse_mid_with_middle_corridors"
+    map_name = "den312d"
     map_path = os.path.join(RootPath.get_root(), os.path.join("Environments", map_name + ".yaml", ))
 
     with open(map_path, 'r') as map_file:
@@ -126,4 +124,4 @@ if __name__ == '__main__':
     with open(map_path_tmp) as map_file:
         map = yaml.load(map_file, Loader=yaml.FullLoader)
 
-    showMap(map, map_name, legend=False)
+    showMap(map, map_name, legend=True)
