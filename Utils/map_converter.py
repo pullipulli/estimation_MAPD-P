@@ -1,7 +1,7 @@
 """
 This script is used to convert ASCII maps to YAML format.
 """
-
+import argparse
 import json
 import os
 import random
@@ -84,4 +84,9 @@ def map_converter(map_name: str):
         yaml.dump(yaml_dic, param_file)
 
 if __name__ == '__main__':
-    map_converter('den312d')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-map_name', help='The name of the map in the Benchmarks folder to convert', default="", type=str)
+
+    args = parser.parse_args()
+
+    map_converter(args.map_name)

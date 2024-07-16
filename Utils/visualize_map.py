@@ -7,6 +7,7 @@ The legend is shown by default. If you want to hide it, set the legend parameter
 If the legend is hidden, the start locations are marked with an "S", the goal locations with a "G" and if the locations are both goal and start, they are marked with a "B".
 author: Andrea Pullia (@pullipulli)
 """
+import argparse
 
 from matplotlib.patches import Circle, Rectangle, Patch
 import matplotlib.pyplot as plt
@@ -102,12 +103,17 @@ def showMap(map, map_name="map", legend=True):
         non_task_endpoint_patch = Patch(facecolor='green', label='Non-task endpoint')
         plt.legend(handles=[both_patch, start_patch, goal_patch, non_task_endpoint_patch], loc="upper right", framealpha=0.5)
 
-    plt.savefig("./maps_pngs/" + map_name + ".png", dpi=300)
+    plt.savefig(RootPath.get_root() + "/Utils/maps_pngs/" + map_name + ".png", dpi=300)
     plt.show()
 
 
 if __name__ == '__main__':
-    map_name = "den312d"
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('-map_name', help='The name of the map in the Environments folder to visualize', default="", type=str)
+
+    args = parser.parse_args()
+    map_name = args.map_name
     map_path = os.path.join(RootPath.get_root(), os.path.join("Environments", map_name + ".yaml", ))
 
     with open(map_path, 'r') as map_file:
