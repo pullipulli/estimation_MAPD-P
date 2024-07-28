@@ -10,7 +10,7 @@ import sys
 from collections import defaultdict
 from glob import glob
 from statistics import *
-from argparse import ArgumentParser, ArgumentTypeError
+from argparse import ArgumentParser, ArgumentTypeError, BooleanOptionalAction
 import time
 
 import yaml
@@ -23,6 +23,13 @@ from Simulation.TP_with_recovery import TokenPassingRecovery
 from Simulation.simulation_new_recovery import SimulationNewRecovery
 from Utils.type_checking import RunId, MapOutput, StatSimulation, StatJson, MapStats
 from typing import Set
+
+normal_print = print
+
+
+def print(string, *funcargs, **kwargs):
+    if args.print:
+        normal_print(string, *funcargs, **kwargs)
 
 
 class GenerateResults:
@@ -208,7 +215,7 @@ class GenerateResults:
         print("Switch collisions: ", switchCollisions)
 
     def simulate(self, map_dict: MapStats, map_name: str, agents_num: int, starts_num: int, goals_num: int, tasks_num: int, tasks_frequency: float,
-                 learning=False) -> StatSimulation:
+                 learning=False, should_print: bool = False) -> StatSimulation:
         """
         Simulates the given map with the given agents, starts, goals, tasks and task frequency. (fixed or learning case)
         :param map_dict:
@@ -285,13 +292,14 @@ class GenerateResults:
         agents = [agent for agentIndex, agent in enumerate(agents) if agentIndex not in agents_to_delete]
 
         simulation = SimulationNewRecovery(tasks, agents, task_distributions, learning, 15, last_task_time, max_time,
-                                           max_distance_traffic=self.max_distance_traffic)
+                                           max_distance_traffic=self.max_distance_traffic, should_print=should_print)
         tp = TokenPassingRecovery(agents, dimensions, max_time, obstacles, non_task_endpoints, simulation,
                                   start_locations,
                                   a_star_max_iter=80000, path_1_modified=True,
                                   path_2_modified=True,
                                   preemption_radius=3,
-                                  preemption_duration=3)
+                                  preemption_duration=3,
+                                  should_print=should_print)
 
         runtime = 0
         stats = defaultdict(lambda: [])
@@ -348,6 +356,7 @@ if __name__ == '__main__':
 
     parser.add_argument('-max_distance_traffic', default=5, type=positive_integer,
                         help='Max distance to consider when calculating traffic matrix')
+    parser.add_argument("-print", action=BooleanOptionalAction, help="If true prints the results to the console.")
     agent_group = parser.add_mutually_exclusive_group()
     agent_group.add_argument('-agents', default=1, type=positive_integer,
                              help='Number of possible agent combinations')

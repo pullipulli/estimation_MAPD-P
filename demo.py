@@ -102,9 +102,6 @@ if __name__ == '__main__':
     agents = param['agents']
     param['tasks'] = tasks
 
-    with open(args.param + "_tmp", 'w') as param_file:
-        yaml.safe_dump(param, param_file)
-
     # Simulate
     simulation = SimulationNewRecovery(tasks, agents, task_distributions, args.learn_task_distribution,
                                        args.update_td_every_t, last_task_time)
@@ -151,12 +148,7 @@ if __name__ == '__main__':
                             simulation.actual_paths[agent2]) + "at time " + str(
                             t))
 
-    args.map = os.path.join(RootPath.get_root(),
-                            os.path.join(config['input_path'], config['input_name'] + "_tmp", ))
     args.schedule = os.path.join(RootPath.get_root(), 'output.yaml')
-
-    with open(args.map) as map_file:
-        map = yaml.load(map_file, Loader=yaml.FullLoader)
 
     with open(args.schedule) as states_file:
         schedule = yaml.load(states_file, Loader=yaml.FullLoader)

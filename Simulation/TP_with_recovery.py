@@ -36,11 +36,12 @@ class TokenPassingRecovery(Observer):
     """
     def __init__(self, agents: list[Agent], dimensions: Dimensions, max_time: int, obstacles: list[Location], non_task_endpoints: list[Location], simulation: SimulationNewRecovery,
                  starts: list[Location], a_star_max_iter=800000000, path_1_modified=False, path_2_modified=False,
-                 preemption_radius=0, preemption_duration=0):
+                 preemption_radius=0, preemption_duration=0, should_print=False):
         self.agents = agents
         self.starts = starts
         self.dimensions = dimensions
         self.max_time = max_time
+        self.should_print = should_print
         self.path_1_modified = path_1_modified
         self.path_2_modified = path_2_modified
         self.preemption_radius = preemption_radius
@@ -472,10 +473,10 @@ class TokenPassingRecovery(Observer):
         :param r:
         :return:
         """
-        print("DEADLOCK ", agent_name)
+        self.print("DEADLOCK ", agent_name)
         self.token['deadlock_count_per_agent'][agent_name] += 1
         if self.token['deadlock_count_per_agent'][agent_name] >= 5:
-            print("DEADLOCK RECOVERY ", agent_name)
+            self.print("DEADLOCK RECOVERY ", agent_name)
             self.token['deadlock_count_per_agent'][agent_name] = 0
             random_close_cell = self.get_random_close_cell(agent_pos, r)
             moving_obstacles_agents = self.get_moving_obstacles_agents(self.token['agents'], 0)
@@ -494,7 +495,7 @@ class TokenPassingRecovery(Observer):
                 for el in path_to_non_task_endpoint[agent_name]:
                     self.token['agents'][agent_name].append([el['x'], el['y']])
             else:
-                print("Deadlock recovery failed ", agent_name)
+                self.print("Deadlock recovery failed ", agent_name)
 
     def time_forward(self):
         """
@@ -641,6 +642,7 @@ class TokenPassingRecovery(Observer):
         """
         self.learned_task_distribution = dict(self.simulation.get_learned_task_distribution())
 
-    def print(self, string: str):
+    def print(self, string: str, *args, **kwargs):
         """Print a string with the current time."""
-        print("TIME " + str(self.simulation.time) + ": " + string)
+        if self.should_print:
+            print("TIME " + str(self.simulation.time) + ": " + string, *args, **kwargs)

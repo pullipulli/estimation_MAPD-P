@@ -8,7 +8,16 @@ import random
 import re
 import yaml
 import RootPath
+import random
+from math import fabs
 
+def near_obstacle(location, obstacles):
+    num_obstacles = 0
+    for obstacle in obstacles:
+        if fabs(location[0] - obstacle[0]) + fabs(location[1] - obstacle[1]) == 1:
+            num_obstacles += 1
+
+    return num_obstacles
 
 def is_valid_agent_location(locations, agent_location):
     if agent_location in locations:
@@ -37,6 +46,47 @@ def random_agents_locations(free_locations, num_agents):
     return agent_locations
 
 
+def random_start_or_goal_locations(obstacles, free_locations, num_locations=50):
+    three_obstacles = set()
+    one_obstacle = set()
+    zero_obstacles = set()
+    assigned_locations = set()
+
+    for location in free_locations:
+        if near_obstacle(location, obstacles) == 3:
+            three_obstacles.add(tuple(location))
+        elif near_obstacle(location, obstacles) == 1:
+            one_obstacle.add(tuple(location))
+        else:
+            zero_obstacles.add(tuple(location))
+
+    remaining_locations = num_locations - len(three_obstacles)
+
+    if remaining_locations <= 0:
+        return list(three_obstacles)
+    else:
+        for location in three_obstacles:
+            assigned_locations.add(location)
+
+    remaining_locations -= len(one_obstacle)
+
+    if remaining_locations <= 0:
+        return list(assigned_locations) + list(one_obstacle)
+    else:
+        for location in one_obstacle:
+            assigned_locations.add(tuple(location))
+
+    last_locations = []
+
+    if len(assigned_locations) < num_locations:
+        last_locations = random.sample(sorted(zero_obstacles), remaining_locations)
+
+    for location in last_locations:
+        assigned_locations.add(tuple(location))
+
+    return list(assigned_locations)
+
+
 def map_converter(map_name: str):
     yaml_dic = {}
     with open(os.path.join(os.path.join(RootPath.get_root(), 'Benchmarks'), map_name + '.map')) as ascii_map:
@@ -46,24 +96,35 @@ def map_converter(map_name: str):
         yaml_dic['agents'] = []
         yaml_dic['map'] = {'dimensions': [w, h], 'obstacles': [], 'non_task_endpoints': [],
                            'start_locations': [], 'goal_locations': []}
+
         ascii_map.readline()
         free_locations = []
-        start_locations = []
-        goal_locations = []
-        agents_locations = []
+        obstacles = []
         for i in range(h - 1, -1, -1):
             line = ascii_map.readline()
             print(line)
             for j in range(w):
                 if line[j] == '@' or line[j] == 'T':
-                    yaml_dic['map']['obstacles'].append((j, i))
+                    obstacles.append((j, i))
                 else:
                     free_locations.append([j, i])
-        start_locations = random.sample(free_locations, 50)
 
-        free_locations = [x for x in free_locations if x not in start_locations]
-        goal_locations = random.sample(free_locations, 40)
-        free_locations = [x for x in free_locations if x not in goal_locations]
+        max_starts_goals = ((w*h) - len(obstacles)) // 100 * 1  # 1% of the free locations are start or goal locations
+
+        start_locations = random_start_or_goal_locations(obstacles, free_locations, max_starts_goals//2)
+        goal_locations = random_start_or_goal_locations(obstacles, free_locations, max_starts_goals//2)
+        intersection_locations = list(set(start_locations) & set(goal_locations))
+        union_locations = start_locations + goal_locations
+
+        for loc in intersection_locations:
+            if random.randrange(0, 30) == 0:
+                # Remove the intersection with a 30% chance, so that the start and goal locations are not completely the same.
+                if random.random() < 0.5:
+                    start_locations.remove(loc)
+                else:
+                    goal_locations.remove(loc)
+
+        free_locations = [x for x in free_locations if tuple(x) not in union_locations]
         agents_locations = random_agents_locations(free_locations, 80)
         agents = []
         locs = []
@@ -74,7 +135,7 @@ def map_converter(map_name: str):
             locs.append((loc[0], loc[1]))
             i = i + 1
         yaml_dic['agents'] = agents
-        yaml_dic['map'] = {'dimensions': [w, h], 'obstacles': yaml_dic['map']['obstacles'], 'non_task_endpoints': locs,
+        yaml_dic['map'] = {'dimensions': [w, h], 'obstacles': obstacles, 'non_task_endpoints': locs,
                            'start_locations': start_locations, 'goal_locations': goal_locations}
 
     with open(os.path.join(RootPath.get_root(), 'config.json'), 'r') as json_file:
@@ -83,10 +144,19 @@ def map_converter(map_name: str):
               'w') as param_file:
         yaml.dump(yaml_dic, param_file)
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-map_name', help='The name of the map in the Benchmarks folder to convert', default="", type=str)
+    parser.add_argument('-map_name', help='The name of the map in the Benchmarks folder to convert', default="",
+                        type=str)
 
     args = parser.parse_args()
 
-    map_converter(args.map_name)
+    if args.map_name != "":
+        map_converter(args.map_name)
+        exit(0)
+
+    for map in os.listdir(os.path.join(RootPath.get_root() + '/Benchmarks')):
+        if map.endswith(".map"):
+            map_name = map[:-4]
+            map_converter(map_name)

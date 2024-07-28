@@ -9,11 +9,16 @@ author: Andrea Pullia (@pullipulli)
 """
 import argparse
 
+import matplotlib
 from matplotlib.patches import Circle, Rectangle, Patch
 import matplotlib.pyplot as plt
 import os
+
+from matplotlib_inline.backend_inline import set_matplotlib_formats
+
 import RootPath
 import yaml
+matplotlib.use("TkAgg")
 
 def showMap(map, map_name="map", legend=True):
     """
@@ -103,17 +108,34 @@ def showMap(map, map_name="map", legend=True):
         non_task_endpoint_patch = Patch(facecolor='green', label='Non-task endpoint')
         plt.legend(handles=[both_patch, start_patch, goal_patch, non_task_endpoint_patch], loc="upper right", framealpha=0.5)
 
-    plt.savefig(RootPath.get_root() + "/Utils/maps_pngs/" + map_name + ".png", dpi=300)
-    plt.show()
+    plt.savefig(RootPath.get_root() + "/Utils/maps_pngs/" + map_name + ".pdf")
+
+
+def show_maps():
+    for map in os.listdir(os.path.join(RootPath.get_root() + '/Environments')):
+        if map.endswith(".yaml"):
+            map_name = map[:-5]
+            with open(RootPath.get_root() + "/Environments/" + map_name + '.yaml', 'r') as map_file:
+                try:
+                    map = yaml.load(map_file, Loader=yaml.FullLoader)
+                except yaml.YAMLError as exc:
+                    print(exc)
+            showMap(map, map_name, legend=True)
 
 
 if __name__ == '__main__':
+    set_matplotlib_formats( 'pdf')
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-map_name', help='The name of the map in the Environments folder to visualize', default="", type=str)
 
     args = parser.parse_args()
     map_name = args.map_name
+
+    if map_name == "":
+        show_maps()
+        exit(0)
+
     map_path = os.path.join(RootPath.get_root(), os.path.join("Environments", map_name + ".yaml", ))
 
     with open(map_path, 'r') as map_file:
@@ -121,13 +143,5 @@ if __name__ == '__main__':
             map = yaml.load(map_file, Loader=yaml.FullLoader)
         except yaml.YAMLError as exc:
             print(exc)
-
-    map_path_tmp = os.path.join(RootPath.get_root(), os.path.join("Environments", map_name + ".yaml" + "_tmp", ))
-
-    with open(map_path_tmp, 'w') as map_file:
-        yaml.safe_dump(map, map_file)
-
-    with open(map_path_tmp) as map_file:
-        map = yaml.load(map_file, Loader=yaml.FullLoader)
 
     showMap(map, map_name, legend=True)

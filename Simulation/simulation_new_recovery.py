@@ -48,7 +48,7 @@ class SimulationNewRecovery(Observable):
 
     def __init__(self, tasks: list[Task], agents: list[Agent], task_distributions: list[TaskDistribution] = None,
                  learn_task_distribution=False,
-                 update_time=30, last_task_time=10000, max_time=10000, max_distance_traffic=5):
+                 update_time=30, last_task_time=10000, max_time=10000, max_distance_traffic=5, should_print=False):
         super().__init__()
         self.last_task_time = last_task_time
         self.update_time = update_time
@@ -64,6 +64,7 @@ class SimulationNewRecovery(Observable):
         self.max_time = max_time
         self.max_distance_traffic = max_distance_traffic
         self.traffic_matrix: list[list[int]] = []
+        self.should_print = should_print
         self.initialize_simulation()
 
     def initialize_simulation(self) -> None:
@@ -215,3 +216,8 @@ class SimulationNewRecovery(Observable):
         learned_td = list(self.get_learned_task_distribution().values())
 
         return wasserstein_distance(fixed_td, learned_td)
+
+    def print(self, string: str):
+        """Print a string with the current time."""
+        if self.should_print:
+            print(string)
