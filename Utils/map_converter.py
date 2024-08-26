@@ -1,10 +1,10 @@
 """
 This script is used to convert ASCII maps to YAML format.
+It does NOT generate a well formed mapd instance, but it is a good basis to start from.
 """
 import argparse
 import json
 import os
-import random
 import re
 import yaml
 import RootPath
@@ -19,18 +19,22 @@ def near_obstacle(location, obstacles):
 
     return num_obstacles
 
-def is_valid_agent_location(locations, agent_location):
-    if agent_location in locations:
+def is_valid_agent_location(other_agents, agent_location, occupied_locations):
+    if agent_location in other_agents:
         return False
 
-    for location in locations:
+    for location in other_agents:
         if abs(location[0] - agent_location[0]) <= 2 and abs(location[1] - agent_location[1]) <= 2:
+            return False
+
+    for location in occupied_locations:
+        if abs(location[0] - agent_location[0]) <= 3 and abs(location[1] - agent_location[1]) <= 3:
             return False
 
     return True
 
 
-def random_agents_locations(free_locations, num_agents):
+def random_agents_locations(free_locations, num_agents, occupied_locations):
     free_locs = list(free_locations)
     agent_locations = []
 
@@ -38,7 +42,7 @@ def random_agents_locations(free_locations, num_agents):
         agent_location = random.choice(free_locs)
         free_locs.remove(agent_location)
 
-        if is_valid_agent_location(agent_locations, agent_location):
+        if is_valid_agent_location(agent_locations, agent_location, occupied_locations):
             agent_locations.append(agent_location)
         else:
             i -= 1
@@ -109,7 +113,7 @@ def map_converter(map_name: str):
                 else:
                     free_locations.append([j, i])
 
-        max_starts_goals = ((w*h) - len(obstacles)) // 100 * 1  # 1% of the free locations are start or goal locations
+        max_starts_goals = ((w*h) - len(obstacles)) // 100 * 2  # 2% of the free locations are start or goal locations
 
         start_locations = random_start_or_goal_locations(obstacles, free_locations, max_starts_goals//2)
         goal_locations = random_start_or_goal_locations(obstacles, free_locations, max_starts_goals//2)
@@ -125,14 +129,14 @@ def map_converter(map_name: str):
                     goal_locations.remove(loc)
 
         free_locations = [x for x in free_locations if tuple(x) not in union_locations]
-        agents_locations = random_agents_locations(free_locations, 80)
+        agents_locations = random_agents_locations(free_locations, 80, union_locations + obstacles)
         agents = []
         locs = []
         i = 0
         for loc in agents_locations:
             string = "agent" + str(i)
-            agents.append({'start': [loc[0], loc[1]], 'name': string})
-            locs.append((loc[0], loc[1]))
+            agents.append({'start': tuple([loc[0], loc[1]]), 'name': string})
+            locs.append(tuple((loc[0], loc[1])))
             i = i + 1
         yaml_dic['agents'] = agents
         yaml_dic['map'] = {'dimensions': [w, h], 'obstacles': obstacles, 'non_task_endpoints': locs,

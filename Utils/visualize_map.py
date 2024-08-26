@@ -1,7 +1,7 @@
 """
 This script is used to visualize a map from a yaml file.
 The map is visualized using matplotlib.
-The map is saved as a png file in the maps_pngs folder.
+The map is saved as a pdf file in the maps_pdfs folder.
 It shows all the possible start locations (orange), goal locations (red), obstacles (black) and non-task endpoints (green circles).
 The legend is shown by default. If you want to hide it, set the legend parameter to False.
 If the legend is hidden, the start locations are marked with an "S", the goal locations with a "G" and if the locations are both goal and start, they are marked with a "B".
@@ -24,7 +24,7 @@ def showMap(map, map_name="map", legend=True):
     """
     This function visualizes the map.
     :param map: The map dict to visualize
-    :param map_name: The name to save the map as a png
+    :param map_name: The name to save the map as a pdf
     :param legend: If True, the legend is shown. If False, the legend is hidden.
     :return:
     """
@@ -108,7 +108,8 @@ def showMap(map, map_name="map", legend=True):
         non_task_endpoint_patch = Patch(facecolor='green', label='Non-task endpoint')
         plt.legend(handles=[both_patch, start_patch, goal_patch, non_task_endpoint_patch], loc="upper right", framealpha=0.5)
 
-    plt.savefig(RootPath.get_root() + "/Utils/maps_pngs/" + map_name + ".pdf")
+    plt.savefig(RootPath.get_root() + "/Utils/maps_pdfs/" + map_name + ".pdf")
+    plt.show()
 
 
 def show_maps():

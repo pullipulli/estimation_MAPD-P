@@ -13,8 +13,8 @@ from matplotlib.axes import Axes
 
 from Utils.type_checking import MapOutput, RunId, MapName
 
-TIME_METRIC_NAMES = ["costs", "serv_times", "pickup_to_goal_times", "start_to_pickup_times", "runtimes", "makespans",
-                     "earth_mover_dist"]
+TIME_METRIC_NAMES = ["costs", "serv_times", "pickup_to_goal_times", "start_to_pickup_times", "runtimes", "makespans"]
+OTHER_METRICS = ["earth_mover_dist"]
 TIME_METRIC_LABELS = ["Costs per Task", "Service Times", "Pickup to Goal Times", "Start to Pickup Times", "Runtimes",
                       "Makespans", "Earth Mover Distance"]
 MAX_TASK_TIME_NAMES = ["earth_mover_dist"]
@@ -30,7 +30,7 @@ class StatsVisualizer:
     Class that allows to visualize the statistics of the simulations.
     """
     def __init__(self, maps: list[MapOutput], agents_num: list[int], tasks_num: list[int],
-                 task_frequency_num: list[float], pickup_num: list[int], goal_num: list[int]):
+                 task_frequency_num: list[float], pickup_num: list[int], goal_num: list[int], td_update_num: list[int]):
         self.maps = maps
         self.map_names = set()
         for map in self.maps:
@@ -42,7 +42,8 @@ class StatsVisualizer:
             "tasks": tasks_num,
             "task_frequency": task_frequency_num,
             "pickup": pickup_num,
-            "goal": goal_num
+            "goal": goal_num,
+            "td_update": td_update_num
         }
         variable_params = []
         for param in self.params:
@@ -101,11 +102,12 @@ class StatsVisualizer:
                learning[
                    "map_name"] and fixed['task_frequency'] == learning['task_frequency'] and fixed['pickup'] == \
                learning['pickup'] and \
-               fixed['goal'] == learning['goal']
+               fixed['goal'] == learning['goal'] and fixed['task_distr_update'] == learning['task_distr_update']
 
         config = {
             "agents": fixed["agents"], "tasks": fixed["tasks"], "map": fixed["map_name"],
             "pickup": fixed["pickup"], "goal": fixed["goal"], "task_frequency": fixed["task_frequency"],
+            "td_update": fixed["task_distr_update"],
             "last_task_time": max(fixed["last_task_time"], learning["last_task_time"])
         }
 
@@ -186,7 +188,7 @@ class StatsVisualizer:
             parameter_string += '\n'
             variable_string = f"Possible values of {variable_param}"
 
-            ax[rowIndex][columnIndex].set_title(f"Mappa: {config["map"]}\n" + parameter_string,
+            ax[rowIndex][columnIndex].set_title(f"Mappa: {config['map']}\n" + parameter_string,
                                                 fontweight='bold', fontsize=self.fontSize, pad=self.padding)
             ax[rowIndex][columnIndex].set_ylabel(variable_string, fontweight='bold', fontsize=self.fontSize)
             ax[rowIndex][columnIndex].set_xlabel(TIME_METRICS[metric_name], fontweight='bold', fontsize=self.fontSize)
