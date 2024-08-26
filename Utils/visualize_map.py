@@ -1,27 +1,30 @@
 """
 This script is used to visualize a map from a yaml file.
 The map is visualized using matplotlib.
-The map is saved as a png file in the maps_pngs folder.
-It shows all the possible start locations (orange), goal locations (green), obstacles (black) and non-task endpoints (green circles).
+The map is saved as a pdf file in the maps_pdfs folder.
+It shows all the possible start locations (orange), goal locations (red), obstacles (black) and non-task endpoints (green circles).
 The legend is shown by default. If you want to hide it, set the legend parameter to False.
 If the legend is hidden, the start locations are marked with an "S", the goal locations with a "G" and if the locations are both goal and start, they are marked with a "B".
 author: Andrea Pullia (@pullipulli)
 """
+import argparse
 
+import matplotlib
 from matplotlib.patches import Circle, Rectangle, Patch
 import matplotlib.pyplot as plt
 import os
+
+from matplotlib_inline.backend_inline import set_matplotlib_formats
+
 import RootPath
 import yaml
-
-Colors = ['orange', 'blue', 'green']
-
+matplotlib.use("TkAgg")
 
 def showMap(map, map_name="map", legend=True):
     """
     This function visualizes the map.
     :param map: The map dict to visualize
-    :param map_name: The name to save the map as a png
+    :param map_name: The name to save the map as a pdf
     :param legend: If True, the legend is shown. If False, the legend is hidden.
     :return:
     """
@@ -60,7 +63,7 @@ def showMap(map, map_name="map", legend=True):
     for s in map["start_locations"]:
         if s in map["goal_locations"]:
             patches.append(
-                Rectangle((s[0] - 0.5, s[1] - 0.5), 1, 1, facecolor=Colors[0],
+                Rectangle((s[0] - 0.5, s[1] - 0.5), 1, 1, facecolor='orange',
                           edgecolor='black',
                           alpha=0.5))
             if not legend:
@@ -72,7 +75,7 @@ def showMap(map, map_name="map", legend=True):
             map["goal_locations"].remove(s)
         else:
             patches.append(
-                Rectangle((s[0] - 0.5, s[1] - 0.5), 1, 1, facecolor=Colors[1],
+                Rectangle((s[0] - 0.5, s[1] - 0.5), 1, 1, facecolor='blue',
                           edgecolor='black',
                           alpha=0.5))
             if not legend:
@@ -83,7 +86,7 @@ def showMap(map, map_name="map", legend=True):
     
     for g in map["goal_locations"]:
         patches.append(
-            Rectangle((g[0] - 0.5, g[1] - 0.5), 1, 1, facecolor=Colors[2],
+            Rectangle((g[0] - 0.5, g[1] - 0.5), 1, 1, facecolor='red',
                       edgecolor='black',
                       alpha=0.5))
         if not legend:
@@ -99,17 +102,41 @@ def showMap(map, map_name="map", legend=True):
         ax.add_artist(a)
 
     if legend:
-        both_patch = Patch(facecolor=Colors[0], label='Start and Goal')
-        start_patch = Patch(facecolor=Colors[1], label='Start')
-        goal_patch = Patch(facecolor=Colors[2], label='Goal')
-        plt.legend(handles=[both_patch, start_patch, goal_patch], loc="upper right", framealpha=0.5)
+        both_patch = Patch(facecolor='orange', label='Start and Goal')
+        start_patch = Patch(facecolor='blue', label='Start')
+        goal_patch = Patch(facecolor='red', label='Goal')
+        non_task_endpoint_patch = Patch(facecolor='green', label='Non-task endpoint')
+        plt.legend(handles=[both_patch, start_patch, goal_patch, non_task_endpoint_patch], loc="upper right", framealpha=0.5)
 
-    plt.savefig("./maps_pngs/" + map_name + ".png", dpi=300)
+    plt.savefig(RootPath.get_root() + "/Utils/maps_pdfs/" + map_name + ".pdf")
     plt.show()
 
 
+def show_maps():
+    for map in os.listdir(os.path.join(RootPath.get_root() + '/Environments')):
+        if map.endswith(".yaml"):
+            map_name = map[:-5]
+            with open(RootPath.get_root() + "/Environments/" + map_name + '.yaml', 'r') as map_file:
+                try:
+                    map = yaml.load(map_file, Loader=yaml.FullLoader)
+                except yaml.YAMLError as exc:
+                    print(exc)
+            showMap(map, map_name, legend=True)
+
+
 if __name__ == '__main__':
-    map_name = "input_warehouse_mid_with_middle_corridors"
+    set_matplotlib_formats( 'pdf')
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('-map_name', help='The name of the map in the Environments folder to visualize', default="", type=str)
+
+    args = parser.parse_args()
+    map_name = args.map_name
+
+    if map_name == "":
+        show_maps()
+        exit(0)
+
     map_path = os.path.join(RootPath.get_root(), os.path.join("Environments", map_name + ".yaml", ))
 
     with open(map_path, 'r') as map_file:
@@ -118,12 +145,4 @@ if __name__ == '__main__':
         except yaml.YAMLError as exc:
             print(exc)
 
-    map_path_tmp = os.path.join(RootPath.get_root(), os.path.join("Environments", map_name + ".yaml" + "_tmp", ))
-
-    with open(map_path_tmp, 'w') as map_file:
-        yaml.safe_dump(map, map_file)
-
-    with open(map_path_tmp) as map_file:
-        map = yaml.load(map_file, Loader=yaml.FullLoader)
-
-    showMap(map, map_name, legend=False)
+    showMap(map, map_name, legend=True)

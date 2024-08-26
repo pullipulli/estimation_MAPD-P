@@ -37,6 +37,7 @@ StatSimulation = TypedDict('StatSimulation', {'costs': list[float], 'serv_times'
                                               'traffic': NotRequired[list[list[int]]], 'agents': NotRequired[int],
                                               'pickup': NotRequired[int], 'goal': NotRequired[int],
                                               'tasks': NotRequired[int], 'task_frequency': NotRequired[float],
+                                              'task_distr_update': NotRequired[int],
                                               'estimated_costs': NotRequired[list[int]],
                                               'real_costs': NotRequired[list[int]],
                                               'map_name': NotRequired[MapName], 'last_task_time': NotRequired[Time]})
@@ -44,7 +45,7 @@ StatSimulation = TypedDict('StatSimulation', {'costs': list[float], 'serv_times'
 MapOutput = TypedDict('MapOutput', {'run_id': RunId, 'fixed': StatSimulation, 'learning': StatSimulation})
 
 StatJson = TypedDict('StatJson', {'maps': list[MapOutput], 'tasks_num': list[int], 'agents_num': list[int],
-                                  'start_num': list[int], 'goal_num': list[int], 'tasks_frequency': list[float]})
+                                  'start_num': list[int], 'goal_num': list[int], 'tasks_frequency': list[float], 'task_distr_update_num': list[int]})
 
 Token = TypedDict('Token', {'agents': dict[AgentName, list[Location]],
                             'tasks': dict[TaskName, list[Location] | tuple[Location]],

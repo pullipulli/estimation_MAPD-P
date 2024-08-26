@@ -6,7 +6,6 @@ This class is used to simulate the execution of a MAPD solving algorithm.
 import math
 import random
 import time
-
 from scipy.stats import wasserstein_distance
 
 from Simulation.TP_with_recovery import admissible_heuristic
@@ -50,6 +49,7 @@ class SimulationNewRecovery(Observable):
                  learn_task_distribution=False,
                  update_time=30, last_task_time=10000, max_time=10000, max_distance_traffic=5):
         super().__init__()
+        self.spawned_tasks = 0
         self.last_task_time = last_task_time
         self.update_time = update_time
         self.tasks = tasks
@@ -65,6 +65,9 @@ class SimulationNewRecovery(Observable):
         self.max_distance_traffic = max_distance_traffic
         self.traffic_matrix: list[list[int]] = []
         self.initialize_simulation()
+
+    def timePrefix(self):
+        return "TIME " + str(self.time) + ": "
 
     def initialize_simulation(self) -> None:
         """Initialize the simulation by setting the initial paths of the agents in actual_paths."""
@@ -82,7 +85,7 @@ class SimulationNewRecovery(Observable):
         start_time = time.time()
         algorithm.time_forward()
         self.algo_time += time.time() - start_time
-        self.agents_moved = set()
+        agents_moved = set()
         agents_to_move = self.agents
         random.shuffle(agents_to_move)
         for agent in agents_to_move:
@@ -90,7 +93,7 @@ class SimulationNewRecovery(Observable):
 
             if len(algorithm.get_token()['agents'][agent['name']]) == 1:
                 # agent moved form his actual position
-                self.agents_moved.add(agent['name'])
+                agents_moved.add(agent['name'])
                 self.actual_paths[agent['name']].append(
                     {'t': self.time, 'x': current_agent_pos['x'], 'y': current_agent_pos['y']})
             elif len(algorithm.get_token()['agents'][agent['name']]) > 1:
@@ -101,7 +104,7 @@ class SimulationNewRecovery(Observable):
 
                 x_new = algorithm.get_token()['agents'][agent['name']][1][0]
                 y_new = algorithm.get_token()['agents'][agent['name']][1][1]
-                self.agents_moved.add(agent['name'])
+                agents_moved.add(agent['name'])
                 algorithm.get_token()['agents'][agent['name']] = algorithm.get_token()['agents'][
                                                                      agent['name']][1:]
                 self.actual_paths[agent['name']].append({'t': self.time, 'x': x_new, 'y': y_new})
@@ -128,7 +131,6 @@ class SimulationNewRecovery(Observable):
                         if distance <= maxDist:
                             newRow[maxDist - 1] += 1
 
-
         self.traffic_matrix.append(newRow)
 
         for task in self.get_new_tasks():
@@ -145,6 +147,7 @@ class SimulationNewRecovery(Observable):
                 self.notify_observers()
             elif (self.time % self.update_time) == 0 and len(self.observers) != 0:
                 self.notify_observers()
+        self.increment_task_number()
 
     def get_time(self) -> Time:
         """Get the current simulation time."""
@@ -169,11 +172,20 @@ class SimulationNewRecovery(Observable):
                 new.append(t)
         return new
 
+    def increment_task_number(self):
+        """Increment the number of tasks that start at the current time."""
+        for t in self.tasks:
+            if t['start_time'] == self.time:
+                self.spawned_tasks += 1
+
+
     def get_learned_task_distribution(self) -> TaskDistribution:
         """
         Get the learned (relative) task distribution.
         :return: the learned task distribution
         """
+        if self.spawned_tasks == len(self.tasks): return dict() # to avoid starvation
+
         freq_task_distribution = dict()
 
         for task in self.learned_task_distribution:
