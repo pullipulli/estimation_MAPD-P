@@ -10,6 +10,8 @@ import random
 from collections import defaultdict
 from math import dist
 
+from icecream import ic
+
 from Simulation.CBS.cbs import CBS, Environment
 from Utils.observer_pattern import Observer, Observable
 from Utils.type_checking import Agent, Location, Dimensions, Token, LocationAtTime, PreemptionZones, PreemptedLocations
@@ -36,7 +38,7 @@ class TokenPassingRecovery(Observer):
 
     def __init__(self, agents: list[Agent], dimensions: Dimensions, max_time: int, obstacles: list[Location],
                  non_task_endpoints: list[Location], simulation: SimulationNewRecovery,
-                 starts: list[Location], a_star_max_iter=800000000, path_1_modified=False, path_2_modified=False,
+                 starts: list[Location], goals: list[Location] = None, a_star_max_iter=800000000, path_1_modified=False, path_2_modified=False,
                  preemption_radius=0, preemption_duration=0):
         self.simulation = simulation
         self.agents = agents
@@ -63,10 +65,11 @@ class TokenPassingRecovery(Observer):
 
         self.obstacles = set(obstacles)
         self.non_task_endpoints = non_task_endpoints
-        if len(agents) > len(non_task_endpoints):
-            # not well-formed instance
-            exit(1)
-        # TODO: Check all properties for well-formedness
+        self.goals = goals
+        self.a_star_max_iter = a_star_max_iter
+
+        if not self.is_well_formed(): exit(-1)
+
         self.token: Token = {
             'agents': {},
             'tasks': {},
@@ -82,11 +85,51 @@ class TokenPassingRecovery(Observer):
             'deadlock_count_per_agent': defaultdict(lambda: 0),
         }
 
-        self.a_star_max_iter = a_star_max_iter
         if self.learn_task_distribution:
             self.simulation.add_observer(self)
             self.learned_task_distribution = dict(simulation.get_learned_task_distribution())
         self.init_token()
+
+    def is_well_formed(self):
+        ic("Checking if instance is well formed...")
+
+        # - At least one non task endpoint per agent
+        if len(self.agents) > len(self.non_task_endpoints):
+            raise ValueError("Instance is not well formed: At least one non task endpoint per agent is required")
+
+        # - The number of tasks is finite
+        if len(self.simulation.tasks) == math.inf:
+            raise ValueError("Instance is not well formed: The number of tasks is infinite")
+
+
+        # - For every couple of endpoints, there is a path between them that does not intersect with other endpoints
+        endpoints = set()
+
+        for non_task_endpoints in self.non_task_endpoints:
+            endpoints.add(tuple(non_task_endpoints))
+
+        for start in self.starts:
+            endpoints.add(tuple(start))
+
+        for goal in self.goals:
+            endpoints.add(tuple(goal))
+
+        for endpoint1 in endpoints:
+            for endpoint2 in endpoints:
+                if endpoint1 != endpoint2:
+                    agent = {'name': 'wellformed', 'start': endpoint1, 'goal': endpoint2}
+                    env = Environment(self.dimensions, [agent], self.obstacles | endpoints - {endpoint1, endpoint2},
+                                      None,
+                                      a_star_max_iter=self.a_star_max_iter)
+                    cbs = CBS(env)
+                    couple_path: list[LocationAtTime] = self.search(cbs)
+
+                    if not couple_path:
+                        raise ValueError(f"Instance is not well formed: No path between two endpoints without intersecting with other endpoints: {endpoint1} and {endpoint2}")
+
+        ic("Instance is well formed!")
+        return True
+
 
     def timePrefix(self):
         return "TIME " + str(self.simulation.time) + ": "
