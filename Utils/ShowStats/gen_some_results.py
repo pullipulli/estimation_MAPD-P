@@ -32,16 +32,12 @@ class GenerateResults:
     This class generates results for the given maps, agents, starts, goals, tasks, task frequencies and task distribution update number.
     """
 
-    def __init__(self, maps: list[MapStats], tasks_num: list[int], tasks_frequency: list[float], agents_num: list[int],
-                 start_num: list[int], goal_num: list[int], task_distr_update_num: list[int], max_distance_traffic: int):
+    def __init__(self, maps: list[MapStats], tasks_num: list[int], tasks_frequency: list[float], task_distr_update_num: list[int], max_distance_traffic: int):
         self.simulation_number = len(maps) * len(tasks_num) * len(agents_num) * len(start_num) * len(
             goal_num * len(tasks_frequency))  * 2 * len(task_distr_update_num)
         self.maps = maps
         self.tasks_num = tasks_num
         self.tasks_frequency = tasks_frequency
-        self.agents_num = agents_num
-        self.start_num = start_num
-        self.goal_num = goal_num
         self.task_distr_update_num = task_distr_update_num
         self.max_distance_traffic = max_distance_traffic
         self.simulation_progress = 0
@@ -70,8 +66,8 @@ class GenerateResults:
             self.generate_output_map(myMap)
 
         output: StatJson = {"maps": self.maps_out, "tasks_num": self.tasks_num, "tasks_frequency": self.tasks_frequency,
-                            "agents_num": self.agents_num, "task_distr_update_num": self.task_distr_update_num,
-                            "start_num": self.start_num, "goal_num": self.goal_num}
+                            "task_distr_update_num": self.task_distr_update_num }
+
         timestr = time.strftime("%d_%m_%Y__%H_%M_%S")
 
         jsonFileName = uniquify(RootPath.get_root() + '/Utils/ShowStats/ResultsJsons/results_' + timestr + '.json')
@@ -166,20 +162,20 @@ class GenerateResults:
         :param map:
         :return:
         """
-        for agents in self.agents_num:
-            for starts in self.start_num:
-                for goals in self.goal_num:
+        for agents in map['agents_num']:
+            for starts in map['start_num']:
+                for goals in map['goal_num']:
                     for tasks in self.tasks_num:
                         for task_frequency in self.tasks_frequency:
                             for task_distr_update in self.task_distr_update_num:
                                 result_fixed = self.simulate(map, map["name"], agents, starts, goals, tasks,
-                                                             5,
+                                                             task_distr_update,
                                                              task_frequency, learning=False)
                                 self.simulation_progress += 1
                                 print(f"Progress: {(self.simulation_progress / self.simulation_number):.2%}")
 
                                 results_learning = self.simulate(map, map["name"], agents, starts, goals, tasks,
-                                                                 5,
+                                                                 task_distr_update,
                                                                  task_frequency, learning=True)
                                 self.simulation_progress += 1
                                 print(f"Progress: {(self.simulation_progress / self.simulation_number):.2%}")
@@ -297,6 +293,7 @@ class GenerateResults:
                                            max_distance_traffic=self.max_distance_traffic)
         tp = TokenPassingRecovery(agents, dimensions, max_time, obstacles, non_task_endpoints, simulation,
                                   start_locations,
+                                  goal_locations,
                                   a_star_max_iter=800000000, path_1_modified=True,
                                   path_2_modified=True,
                                   preemption_radius=3,
@@ -445,7 +442,7 @@ if __name__ == '__main__':
                 elif args.agents == 1:
                     agents_num = [max_agents]
                 else:
-                    agents_num = np.linspace(5, max_agents, args.agents, dtype=int).tolist()
+                    agents_num = np.linspace(3, max_agents, args.agents, dtype=int).tolist()
 
                 if args.starts_list:
                     start_num = args.starts_list
@@ -470,7 +467,6 @@ if __name__ == '__main__':
             except yaml.YAMLError as exc:
                 print(exc)
 
-    gen_result = GenerateResults(maps, tasks_num, tasks_frequency, agents_num, start_num, goal_num,
-                                 td_update_num, args.max_distance_traffic)
+    gen_result = GenerateResults(maps, tasks_num, tasks_frequency, td_update_num, args.max_distance_traffic)
 
     gen_result.generate_results()

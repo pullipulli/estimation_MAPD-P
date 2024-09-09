@@ -68,7 +68,11 @@ class TokenPassingRecovery(Observer):
         self.goals = goals
         self.a_star_max_iter = a_star_max_iter
 
-        if not self.is_well_formed(): exit(-1)
+        """try :
+            self.is_well_formed()
+            ic("Instance is well formed!")
+        except ValueError as e:
+            ic(e)"""
 
         self.token: Token = {
             'agents': {},
@@ -91,6 +95,12 @@ class TokenPassingRecovery(Observer):
         self.init_token()
 
     def is_well_formed(self):
+        """
+        Check if the instance is well formed.
+        Really slow; only use for debugging. (but it works)
+        :raises ValueError: If the instance is not well formed.
+        """
+
         ic("Checking if instance is well formed...")
 
         # - At least one non task endpoint per agent
@@ -126,9 +136,6 @@ class TokenPassingRecovery(Observer):
 
                     if not couple_path:
                         raise ValueError(f"Instance is not well formed: No path between two endpoints without intersecting with other endpoints: {endpoint1} and {endpoint2}")
-
-        ic("Instance is well formed!")
-        return True
 
 
     def timePrefix(self):

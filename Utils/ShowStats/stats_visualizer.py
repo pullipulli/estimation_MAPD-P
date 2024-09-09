@@ -13,7 +13,7 @@ from matplotlib.axes import Axes
 
 from Utils.type_checking import MapOutput, RunId, MapName
 
-TIME_METRIC_NAMES = ["costs", "serv_times", "pickup_to_goal_times", "start_to_pickup_times", "runtimes", "makespans"]
+TIME_METRIC_NAMES = ["costs", "serv_times", "pickup_to_goal_times", "start_to_pickup_times", "runtimes", "makespans", "earth_mover_dist"]
 OTHER_METRICS = ["earth_mover_dist"]
 TIME_METRIC_LABELS = ["Costs per Task", "Service Times", "Pickup to Goal Times", "Start to Pickup Times", "Runtimes",
                       "Makespans", "Earth Mover Distance"]
@@ -30,7 +30,7 @@ class StatsVisualizer:
     Class that allows to visualize the statistics of the simulations.
     """
     def __init__(self, maps: list[MapOutput], agents_num: list[int], tasks_num: list[int],
-                 task_frequency_num: list[float], pickup_num: list[int], goal_num: list[int], td_update_num: list[int]):
+                 task_frequency_num: list[float], pickup_num: list[int], goal_num: list[int], td_update_num: list[int], save=True):
         self.maps = maps
         self.map_names = set()
         for map in self.maps:
@@ -54,6 +54,7 @@ class StatsVisualizer:
 
         self.padding = 0
         self.fontSize = 12
+        self.save = save
 
     def get_map_names(self):
         """Get the names of the maps."""
@@ -197,10 +198,18 @@ class StatsVisualizer:
                 possible_variable_num)
             if number_of_bars_per_group > 1:
                 ax[rowIndex][columnIndex].legend()
+
+            if metric_name in OTHER_METRICS:
+                ax[rowIndex][columnIndex].set_visible(False)
+
             metric_index += 1
             columnIndex += 1
         plt.tight_layout()
-        plt.show()
+
+        if self.save:
+            plt.savefig(f"plots_pngs/{self.variable_param}/{map_name}/double_bar_plots.png")
+        else:
+            plt.show()
 
     def show_metric_evolution(self, map_name: str, ax: Axes | list[Axes] | list[list[Axes]]) -> None:
         """
@@ -251,7 +260,10 @@ class StatsVisualizer:
                 metric_index += 1
             run_index += 1
         plt.tight_layout()
-        plt.show()
+        if self.save:
+            plt.savefig(f"plots_pngs/{self.variable_param}/{map_name}/metric_evolutions.png")
+        else:
+            plt.show()
 
     def show_real_vs_estimated_avg_costs(self, map_name: MapName, ax: Axes | list[Axes]) -> None:
         """
@@ -302,7 +314,11 @@ class StatsVisualizer:
             currentAx.legend()
             i += 1
         plt.tight_layout()
-        plt.show()
+
+        if self.save:
+            plt.savefig(f"plots_pngs/{self.variable_param}/{map_name}/real_vs_estimated_avg_costs.png")
+        else:
+            plt.show()
 
     def show_traffic_evolution(self, map_name: MapName) -> None:
         """
@@ -348,7 +364,10 @@ class StatsVisualizer:
                          fontsize=self.fontSize)
 
             plt.tight_layout()
-            plt.show()
+            if self.save:
+                plt.savefig(f"plots_pngs/{self.variable_param}/{map_name}/traffic_evolution.png")
+            else:
+                plt.show()
 
     def show_all_metrics(self, map_name: MapName) -> None:
         """
@@ -365,13 +384,18 @@ class StatsVisualizer:
                                         height_coefficient * double_bar_rows))
         ax[-1][-1].axis('off')
         self.show_double_bar_time_metric(map_name, ax, row_number=double_bar_rows)
+        plt.close(fig)
 
         fig, ax = plt.subplots(nrows=len(run_ids), ncols=len(TIME_EVOLUTION_NAMES), figsize=(
             width_coefficient * len(TIME_EVOLUTION_NAMES), height_coefficient * len(run_ids)))
         self.show_metric_evolution(map_name, ax)
+        plt.close(fig)
 
         fig, ax = plt.subplots(nrows=1, ncols=len(run_ids),
                                figsize=(width_coefficient * len(run_ids), height_coefficient))
         self.show_real_vs_estimated_avg_costs(map_name, ax)
+        plt.close(fig)
 
         self.show_traffic_evolution(map_name)
+
+        plt.close("all")
