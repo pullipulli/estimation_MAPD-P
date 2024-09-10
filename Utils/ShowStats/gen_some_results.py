@@ -189,7 +189,8 @@ class GenerateResults:
 
                                 if run_id not in self.run_ids:
                                     self.maps_out.append(
-                                        {'run_id': run_id, 'fixed': result_fixed, 'learning': results_learning})
+                                        {'run_id': run_id, 'fixed': result_fixed, 'learning': results_learning, 'agents_num': map['agents_num'],
+                                         'start_num': map['start_num'], 'goal_num': map['goal_num']})
                                     self.run_ids.add(run_id)
 
     def check_collisions(self, simulation: SimulationNewRecovery):
