@@ -188,7 +188,7 @@ class StatsVisualizer:
             parameter_string = ""
             for param in config:
                 if param != variable_param and param != "map":
-                    parameter_string += f"{param}: {config[param]}, "
+                    parameter_string += f"{param}: {config[param]},\n"
             parameter_string += '\n'
             variable_string = f"Possible values of {variable_param}"
 
@@ -368,7 +368,8 @@ class StatsVisualizer:
 
             plt.tight_layout()
             if self.save:
-                plt.savefig(f"plots_pngs/{self.variable_param}/{map_name}/traffic_evolution.png")
+                plt.savefig(f"plots_pngs/{self.variable_param}/{map_name}/traffic_evolution_{config[self.variable_param]}.png")
+                plt.close(fig)
             else:
                 plt.show()
 
@@ -417,7 +418,5 @@ class StatsVisualizer:
             plt.close(fig)
 
             self.show_traffic_evolution(map_name)
-
-            plt.close("all")
 
             showed_run_ids.update(run_ids)
