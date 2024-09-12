@@ -190,7 +190,7 @@ class GenerateResults:
                                 if run_id not in self.run_ids:
                                     self.maps_out.append(
                                         {'run_id': run_id, 'fixed': result_fixed, 'learning': results_learning, 'agents_num': map['agents_num'],
-                                         'start_num': map['start_num'], 'goal_num': map['goal_num']})
+                                         'start_num': map['start_num'], 'goal_num': map['goal_num'], 'map_name': map['name']})
                                     self.run_ids.add(run_id)
 
     def check_collisions(self, simulation: SimulationNewRecovery):
@@ -450,14 +450,14 @@ if __name__ == '__main__':
                 elif args.starts == 1:
                     start_num = [max_starts]
                 else:
-                    start_num = np.linspace(5, max_starts, args.starts, dtype=int).tolist()
+                    start_num = np.linspace(15, max_starts, args.starts, dtype=int).tolist()
 
                 if args.goals_list:
                     goal_num = args.goals_list
                 elif args.goals == 1:
                     goal_num = [max_goals]
                 else:
-                    goal_num = np.linspace(5, max_goals, args.goals, dtype=int).tolist()
+                    goal_num = np.linspace(15, max_goals, args.goals, dtype=int).tolist()
 
                 map_yaml['agents_num'] = agents_num
                 map_yaml['start_num'] = start_num

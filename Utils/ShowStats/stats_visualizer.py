@@ -29,8 +29,7 @@ class StatsVisualizer:
     """
     Class that allows to visualize the statistics of the simulations.
     """
-    def __init__(self, maps: list[MapOutput], agents_num: list[int], tasks_num: list[int],
-                 task_frequency_num: list[float], pickup_num: list[int], goal_num: list[int], td_update_num: list[int], save=True):
+    def __init__(self, maps: list[MapOutput], tasks_num: list[int], task_frequency_num: list[float], td_update_num: list[int], save=True):
         self.maps = maps
         self.map_names = set()
         for map in self.maps:
@@ -38,23 +37,27 @@ class StatsVisualizer:
             self.map_names.add(config["map"])
 
         self.params = {
-            "agents": agents_num,
+            "agents": [],
             "tasks": tasks_num,
             "task_frequency": task_frequency_num,
-            "pickup": pickup_num,
-            "goal": goal_num,
+            "pickup": [],
+            "goal": [],
             "td_update": td_update_num
         }
+
+        self.variable_param = None # At the beginning, no variable parameter is set because it is not known yet
+
+        self.padding = 0
+        self.fontSize = 12
+        self.save = save
+
+    def check_for_variable_param(self):
         variable_params = []
         for param in self.params:
             if len(self.params[param]) > 1:
                 variable_params.append(param)
         assert len(variable_params) == 1, "Only one parameter can be variable"
         self.variable_param = variable_params[0]
-
-        self.padding = 0
-        self.fontSize = 12
-        self.save = save
 
     def get_map_names(self):
         """Get the names of the maps."""
@@ -369,33 +372,52 @@ class StatsVisualizer:
             else:
                 plt.show()
 
-    def show_all_metrics(self, map_name: MapName) -> None:
+    def show_all_metrics(self) -> None:
         """
         Show all the metrics of the simulation.
         :param map_name: The name of the map to show the metrics of.
         """
+
         width_coefficient = 7
         height_coefficient = 7
-        run_ids = self.get_run_ids_from_map(map_name)
         double_bar_rows = 2
 
-        fig, ax = plt.subplots(nrows=double_bar_rows, ncols=math.ceil(len(TIME_METRIC_NAMES) / double_bar_rows),
-                               figsize=(width_coefficient * math.ceil(len(TIME_METRIC_NAMES) / double_bar_rows),
-                                        height_coefficient * double_bar_rows))
-        ax[-1][-1].axis('off')
-        self.show_double_bar_time_metric(map_name, ax, row_number=double_bar_rows)
-        plt.close(fig)
+        showed_run_ids = set()
 
-        fig, ax = plt.subplots(nrows=len(run_ids), ncols=len(TIME_EVOLUTION_NAMES), figsize=(
-            width_coefficient * len(TIME_EVOLUTION_NAMES), height_coefficient * len(run_ids)))
-        self.show_metric_evolution(map_name, ax)
-        plt.close(fig)
+        for my_map in self.maps:
+            map_name = my_map["map_name"]
+            run_ids = self.get_run_ids_from_map(map_name)
 
-        fig, ax = plt.subplots(nrows=1, ncols=len(run_ids),
-                               figsize=(width_coefficient * len(run_ids), height_coefficient))
-        self.show_real_vs_estimated_avg_costs(map_name, ax)
-        plt.close(fig)
+            run_ids = [run_id for run_id in run_ids if run_id not in showed_run_ids]
 
-        self.show_traffic_evolution(map_name)
+            if len(run_ids) == 0:
+                continue
 
-        plt.close("all")
+            self.params["agents"] = my_map["agents_num"]
+            self.params["pickup"] = my_map["start_num"]
+            self.params["goal"] = my_map["goal_num"]
+
+            self.check_for_variable_param()
+
+            fig, ax = plt.subplots(nrows=double_bar_rows, ncols=math.ceil(len(TIME_METRIC_NAMES) / double_bar_rows),
+                                   figsize=(width_coefficient * math.ceil(len(TIME_METRIC_NAMES) / double_bar_rows),
+                                            height_coefficient * double_bar_rows))
+            ax[-1][-1].axis('off')
+            self.show_double_bar_time_metric(map_name, ax, row_number=double_bar_rows)
+            plt.close(fig)
+
+            fig, ax = plt.subplots(nrows=len(run_ids), ncols=len(TIME_EVOLUTION_NAMES), figsize=(
+                width_coefficient * len(TIME_EVOLUTION_NAMES), height_coefficient * len(run_ids)))
+            self.show_metric_evolution(map_name, ax)
+            plt.close(fig)
+
+            fig, ax = plt.subplots(nrows=1, ncols=len(run_ids),
+                                   figsize=(width_coefficient * len(run_ids), height_coefficient))
+            self.show_real_vs_estimated_avg_costs(map_name, ax)
+            plt.close(fig)
+
+            self.show_traffic_evolution(map_name)
+
+            plt.close("all")
+
+            showed_run_ids.update(run_ids)
