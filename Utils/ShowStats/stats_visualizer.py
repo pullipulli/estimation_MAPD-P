@@ -1,3 +1,7 @@
+"""
+This module contains the StatsVisualizer class that allows to visualize the statistics of the simulations.
+author: Andrea Pullia (@pullipulli)
+"""
 from collections import defaultdict
 
 import numpy as np
@@ -9,8 +13,8 @@ from matplotlib.axes import Axes
 
 from Utils.type_checking import MapOutput, RunId, MapName
 
-TIME_METRIC_NAMES = ["costs", "serv_times", "pickup_to_goal_times", "start_to_pickup_times", "runtimes", "makespans",
-                     "earth_mover_dist"]
+TIME_METRIC_NAMES = ["costs", "serv_times", "pickup_to_goal_times", "start_to_pickup_times", "runtimes", "makespans", "earth_mover_dist"]
+OTHER_METRICS = ["earth_mover_dist"]
 TIME_METRIC_LABELS = ["Costs per Task", "Service Times", "Pickup to Goal Times", "Start to Pickup Times", "Runtimes",
                       "Makespans", "Earth Mover Distance"]
 MAX_TASK_TIME_NAMES = ["earth_mover_dist"]
@@ -22,8 +26,10 @@ TIME_EVOLUTION_NAMES = ["serv_times", "pickup_to_goal_times", "start_to_pickup_t
 
 
 class StatsVisualizer:
-    def __init__(self, maps: list[MapOutput], agents_num: list[int], tasks_num: list[int],
-                 task_frequency_num: list[float], pickup_num: list[int], goal_num: list[int]):
+    """
+    Class that allows to visualize the statistics of the simulations.
+    """
+    def __init__(self, maps: list[MapOutput], tasks_num: list[int], task_frequency_num: list[float], td_update_num: list[int], save=True):
         self.maps = maps
         self.map_names = set()
         for map in self.maps:
@@ -31,12 +37,21 @@ class StatsVisualizer:
             self.map_names.add(config["map"])
 
         self.params = {
-            "agents": agents_num,
+            "agents": [],
             "tasks": tasks_num,
             "task_frequency": task_frequency_num,
-            "pickup": pickup_num,
-            "goal": goal_num
+            "pickup": [],
+            "goal": [],
+            "td_update": td_update_num
         }
+
+        self.variable_param = None # At the beginning, no variable parameter is set because it is not known yet
+
+        self.padding = 0
+        self.fontSize = 12
+        self.save = save
+
+    def check_for_variable_param(self):
         variable_params = []
         for param in self.params:
             if len(self.params[param]) > 1:
@@ -44,16 +59,16 @@ class StatsVisualizer:
         assert len(variable_params) == 1, "Only one parameter can be variable"
         self.variable_param = variable_params[0]
 
-        self.padding = 0
-        self.fontSize = 12
-
     def get_map_names(self):
+        """Get the names of the maps."""
         return self.map_names
 
     def get_variable_config_parameter(self):
+        """Get the variable parameter of the configuration."""
         return self.variable_param
 
     def stats_of(self, map_dict: MapOutput = None, run_id: RunId = None):
+        """Get the statistics of a simulation run."""
         if run_id is not None:
             map_dict = [map for map in self.maps if map["run_id"] == run_id][0]
 
@@ -91,11 +106,12 @@ class StatsVisualizer:
                learning[
                    "map_name"] and fixed['task_frequency'] == learning['task_frequency'] and fixed['pickup'] == \
                learning['pickup'] and \
-               fixed['goal'] == learning['goal']
+               fixed['goal'] == learning['goal'] and fixed['task_distr_update'] == learning['task_distr_update']
 
         config = {
             "agents": fixed["agents"], "tasks": fixed["tasks"], "map": fixed["map_name"],
             "pickup": fixed["pickup"], "goal": fixed["goal"], "task_frequency": fixed["task_frequency"],
+            "td_update": fixed["task_distr_update"],
             "last_task_time": max(fixed["last_task_time"], learning["last_task_time"])
         }
 
@@ -103,6 +119,7 @@ class StatsVisualizer:
             "traffic"]
 
     def get_run_ids_from_map(self, map_name: MapName):
+        """Get the run ids of the simulations of a map."""
         run_ids = []
         for map in self.maps:
             config = self.stats_of(map)[0]
@@ -111,6 +128,12 @@ class StatsVisualizer:
         return run_ids
 
     def show_double_bar_time_metric(self, map_name: MapName, ax: list[list[Axes]], row_number=2):
+        """
+        Show the double bar plot of the time metrics.
+        :param map_name: The name of the map to show the metrics of.
+        :param ax: The axes to plot the data on
+        :param row_number: The number of rows to plot the data on
+        """
         run_ids = self.get_run_ids_from_map(map_name)
 
         # set width of bar
@@ -169,7 +192,7 @@ class StatsVisualizer:
             parameter_string += '\n'
             variable_string = f"Possible values of {variable_param}"
 
-            ax[rowIndex][columnIndex].set_title(f"Mappa: {config["map"]}\n" + parameter_string,
+            ax[rowIndex][columnIndex].set_title(f"Mappa: {config['map']}\n" + parameter_string,
                                                 fontweight='bold', fontsize=self.fontSize, pad=self.padding)
             ax[rowIndex][columnIndex].set_ylabel(variable_string, fontweight='bold', fontsize=self.fontSize)
             ax[rowIndex][columnIndex].set_xlabel(TIME_METRICS[metric_name], fontweight='bold', fontsize=self.fontSize)
@@ -178,12 +201,26 @@ class StatsVisualizer:
                 possible_variable_num)
             if number_of_bars_per_group > 1:
                 ax[rowIndex][columnIndex].legend()
+
+            if metric_name in OTHER_METRICS:
+                ax[rowIndex][columnIndex].set_visible(False)
+
             metric_index += 1
             columnIndex += 1
         plt.tight_layout()
-        plt.show()
 
-    def show_metric_evolution(self, map_name: str, ax: Axes | list[Axes] | list[list[Axes]]):
+        if self.save:
+            plt.savefig(f"plots_pngs/{self.variable_param}/{map_name}/double_bar_plots.png")
+        else:
+            plt.show()
+
+    def show_metric_evolution(self, map_name: str, ax: Axes | list[Axes] | list[list[Axes]]) -> None:
+        """
+        Show the evolution of some metrics.
+        :param map_name: The name of the map to show the metrics of.
+        :param ax: The axes to plot the data on (if there are multiple subplots, ax is a list (or a list of lists) of
+        Axes, one for each subplot).
+        """
         run_ids = self.get_run_ids_from_map(map_name)
 
         run_index = 0
@@ -226,9 +263,17 @@ class StatsVisualizer:
                 metric_index += 1
             run_index += 1
         plt.tight_layout()
-        plt.show()
+        if self.save:
+            plt.savefig(f"plots_pngs/{self.variable_param}/{map_name}/metric_evolutions.png")
+        else:
+            plt.show()
 
-    def show_real_vs_estimated_avg_costs(self, map_name: MapName, ax: Axes | list[Axes]):
+    def show_real_vs_estimated_avg_costs(self, map_name: MapName, ax: Axes | list[Axes]) -> None:
+        """
+        Show the average real and estimated costs.
+        :param map_name: The name of the map to show and compare the estimated and real costs of.
+        :param ax: The axes to plot the data on (if there are multiple subplots, ax is a list of Axes, one for each subplot).
+        """
         run_ids = self.get_run_ids_from_map(map_name)
 
         barWidth = 0.25
@@ -272,9 +317,17 @@ class StatsVisualizer:
             currentAx.legend()
             i += 1
         plt.tight_layout()
-        plt.show()
 
-    def show_traffic_evolution(self, map_name: MapName):
+        if self.save:
+            plt.savefig(f"plots_pngs/{self.variable_param}/{map_name}/real_vs_estimated_avg_costs.png")
+        else:
+            plt.show()
+
+    def show_traffic_evolution(self, map_name: MapName) -> None:
+        """
+        Show the evolution of the traffic with a heatmap.
+        :param map_name: The name of the map to show the traffic evolution of.
+        """
         run_ids = self.get_run_ids_from_map(map_name)
 
         for run_id in run_ids:
@@ -314,26 +367,57 @@ class StatsVisualizer:
                          fontsize=self.fontSize)
 
             plt.tight_layout()
-            plt.show()
+            if self.save:
+                plt.savefig(f"plots_pngs/{self.variable_param}/{map_name}/traffic_evolution.png")
+            else:
+                plt.show()
 
-    def show_all_metrics(self, map_name: MapName):
+    def show_all_metrics(self) -> None:
+        """
+        Show all the metrics of the simulation.
+        :param map_name: The name of the map to show the metrics of.
+        """
+
         width_coefficient = 7
         height_coefficient = 7
-        run_ids = self.get_run_ids_from_map(map_name)
         double_bar_rows = 2
 
-        fig, ax = plt.subplots(nrows=double_bar_rows, ncols=math.ceil(len(TIME_METRIC_NAMES) / double_bar_rows),
-                               figsize=(width_coefficient * math.ceil(len(TIME_METRIC_NAMES) / double_bar_rows),
-                                        height_coefficient * double_bar_rows))
-        ax[-1][-1].axis('off')
-        self.show_double_bar_time_metric(map_name, ax, row_number=double_bar_rows)
+        showed_run_ids = set()
 
-        fig, ax = plt.subplots(nrows=len(run_ids), ncols=len(TIME_EVOLUTION_NAMES), figsize=(
-            width_coefficient * len(TIME_EVOLUTION_NAMES), height_coefficient * len(run_ids)))
-        self.show_metric_evolution(map_name, ax)
+        for my_map in self.maps:
+            map_name = my_map["map_name"]
+            run_ids = self.get_run_ids_from_map(map_name)
 
-        fig, ax = plt.subplots(nrows=1, ncols=len(run_ids),
-                               figsize=(width_coefficient * len(run_ids), height_coefficient))
-        self.show_real_vs_estimated_avg_costs(map_name, ax)
+            run_ids = [run_id for run_id in run_ids if run_id not in showed_run_ids]
 
-        self.show_traffic_evolution(map_name)
+            if len(run_ids) == 0:
+                continue
+
+            self.params["agents"] = my_map["agents_num"]
+            self.params["pickup"] = my_map["start_num"]
+            self.params["goal"] = my_map["goal_num"]
+
+            self.check_for_variable_param()
+
+            fig, ax = plt.subplots(nrows=double_bar_rows, ncols=math.ceil(len(TIME_METRIC_NAMES) / double_bar_rows),
+                                   figsize=(width_coefficient * math.ceil(len(TIME_METRIC_NAMES) / double_bar_rows),
+                                            height_coefficient * double_bar_rows))
+            ax[-1][-1].axis('off')
+            self.show_double_bar_time_metric(map_name, ax, row_number=double_bar_rows)
+            plt.close(fig)
+
+            fig, ax = plt.subplots(nrows=len(run_ids), ncols=len(TIME_EVOLUTION_NAMES), figsize=(
+                width_coefficient * len(TIME_EVOLUTION_NAMES), height_coefficient * len(run_ids)))
+            self.show_metric_evolution(map_name, ax)
+            plt.close(fig)
+
+            fig, ax = plt.subplots(nrows=1, ncols=len(run_ids),
+                                   figsize=(width_coefficient * len(run_ids), height_coefficient))
+            self.show_real_vs_estimated_avg_costs(map_name, ax)
+            plt.close(fig)
+
+            self.show_traffic_evolution(map_name)
+
+            plt.close("all")
+
+            showed_run_ids.update(run_ids)
