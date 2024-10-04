@@ -187,9 +187,16 @@ class StatsVisualizer:
                 if param != variable_param and param != "map":
                     parameter_string += f"{param}: {config[param]},\n"
             parameter_string += '\n'
-            variable_string = f"Possible values of {variable_param}"
 
-            ax.set_title(f"Mappa: {config['map']}\n" + parameter_string,
+            variable_string = ""
+            if variable_param == "agents" or variable_param == "tasks" or variable_param == "pickup" or variable_param == "goal":
+                variable_string = f"Number of {variable_param}"
+            elif variable_param == "task_freq":
+                variable_string = f"Possible task frequencies"
+            elif variable_param == "td_update":
+                variable_string = f"Task distribution update frequency values"
+
+            ax.set_title(f"Map: {config['map']}\n" + parameter_string,
                                                 fontweight='bold', fontsize=self.fontSize, pad=self.padding)
             ax.set_ylabel(variable_string, fontweight='bold', fontsize=self.fontSize)
             ax.set_xlabel(TIME_METRICS[metric_name], fontweight='bold', fontsize=self.fontSize)
@@ -241,11 +248,12 @@ class StatsVisualizer:
                             parameter_string += '\n'
                         should_new_line = not should_new_line
 
-                run_ax.set_title(f"Mappa: {config["map"]}\n" + parameter_string, fontweight='bold',
+                run_ax.set_title(f"Map: {config["map"]}\n" + parameter_string, fontweight='bold',
                                                fontsize=self.fontSize, pad=self.padding)
                 run_ax.set_xlabel("Time", fontweight='bold', fontsize=self.fontSize)
                 run_ax.set_ylabel(TIME_METRICS[metric_name], fontweight='bold', fontsize=self.fontSize)
-                run_ax.legend()
+                if metric_name not in ONLY_LEARNING_TIME_NAMES:
+                    run_ax.legend()
                 plt.tight_layout()
 
                 plot_type_str = "metric_evolution/"
@@ -291,7 +299,7 @@ class StatsVisualizer:
                     parameter_string += f"{param}: {config[param]}, "
                     should_new_line = not should_new_line
 
-            currentAx.set_title(f"Mappa: {config["map"]}\n" + parameter_string, fontweight='bold',
+            currentAx.set_title(f"Map: {config["map"]}\n" + parameter_string, fontweight='bold',
                                 fontsize=self.fontSize, pad=self.padding)
             currentAx.set_ylabel("Average Cost", fontweight='bold', fontsize=self.fontSize)
             currentAx.set_xticks([r + barWidth / 2 for r in range(2)],
@@ -315,13 +323,34 @@ class StatsVisualizer:
             config, _, _, _, _, traffic_fixed, traffic_learning = self.stats_of(run_id=run_id)
             fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(1000*self.pixel_size, 800*self.pixel_size))
 
+            min_fixed, max_fixed = math.inf, -math.inf
+
+            for i in range(len(traffic_fixed)):
+                for j in range(len(traffic_fixed[i])):
+                    if traffic_fixed[i][j] < min_fixed:
+                        min_fixed = traffic_fixed[i][j]
+                    if traffic_fixed[i][j] > max_fixed:
+                        max_fixed = traffic_fixed[i][j]
+
+            min_learning, max_learning = math.inf, -math.inf
+
+            for i in range(len(traffic_learning)):
+                for j in range(len(traffic_learning[i])):
+                    if traffic_learning[i][j] < min_learning:
+                        min_learning = traffic_learning[i][j]
+                    if traffic_learning[i][j] > max_learning:
+                        max_learning = traffic_learning[i][j]
+
+            max_traffic = max(max_fixed, max_learning)
+            min_traffic = min(min_fixed, min_learning)
+
             max_distance_fixed = max(len(dist_list) for dist_list in traffic_fixed)
             max_distance_learning = max(len(dist_list) for dist_list in traffic_learning)
 
             xticks_fixed = range(1, max_distance_fixed + 1)
             xticks_learning = range(1, max_distance_learning + 1)
 
-            sns.heatmap(traffic_fixed, cmap='YlOrRd', ax=ax[0])
+            sns.heatmap(traffic_fixed, cmap='YlOrRd', ax=ax[0], vmin=min_traffic, vmax=max_traffic)
             xticks_fixed_locations = ax[0].get_xticks()
             ax[0].set_xticks(xticks_fixed_locations, labels=xticks_fixed)
             ax[0].invert_yaxis()
@@ -329,7 +358,7 @@ class StatsVisualizer:
             ax[0].set_xlabel('Distance')
             ax[0].set_ylabel('Time')
 
-            sns.heatmap(traffic_learning, cmap='YlOrRd', ax=ax[1])
+            sns.heatmap(traffic_learning, cmap='YlOrRd', ax=ax[1], vmin=min_traffic, vmax=max_traffic)
             xticks_learning_locations = ax[1].get_xticks()
             ax[1].set_xticks(xticks_learning_locations, labels=xticks_learning)
             ax[1].invert_yaxis()
@@ -342,7 +371,7 @@ class StatsVisualizer:
                 if param != "map":
                     parameter_string += f"{param}: {config[param]},\n"
 
-            fig.suptitle(f"Traffic:\nMappa: {config["map"]}\n" + parameter_string, fontweight='bold',
+            fig.suptitle(f"Traffic:\nMap: {config["map"]}\n" + parameter_string, fontweight='bold',
                          fontsize=self.fontSize)
 
             plt.tight_layout()
