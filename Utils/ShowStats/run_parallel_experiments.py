@@ -29,19 +29,19 @@ def run_script(**kwargs):
 
     if 'tasks' in kwargs:
         tasks = kwargs['tasks']
-        tasks_list = np.arange(tasks[0], tasks[1] + 1, dtype=int).tolist()
+        tasks_list = np.linspace(20, 100, tasks, dtype=int).tolist()
     elif 'tasks_list' in kwargs:
         tasks_list = kwargs['tasks_list']
 
     if 'tasks_frequency' in kwargs:
         tasks_frequency = kwargs['tasks_frequency']
-        tasks_frequency_list = np.arange(tasks_frequency[0], tasks_frequency[1] + 1, dtype=float).tolist()
+        tasks_frequency_list = np.linspace(0.2, 2, tasks_frequency, dtype=float).tolist()
     elif 'tasks_frequency_list' in kwargs:
         tasks_frequency_list = kwargs['tasks_frequency_list']
 
     if 'td_update' in kwargs:
         td_update = kwargs['td_update']
-        td_update_list = np.arange(td_update[0], td_update[1] + 1, dtype=int).tolist()
+        td_update_list = np.linspace(1, 30, td_update, dtype=int).tolist()
     elif 'td_update_list' in kwargs:
         td_update_list = kwargs['td_update_list']
 
@@ -50,31 +50,34 @@ def run_script(**kwargs):
             try:
                 map_yaml = yaml.load(map_file, Loader=yaml.FullLoader)
 
+                max_agents = len(map_yaml['agents'])
+                max_starts = len(map_yaml['map']['start_locations'])
+                max_goals = len(map_yaml['map']['goal_locations'])
+
                 agents_list = [max_agents]
                 starts_list = [max_starts]
                 goals_list = [max_goals]
 
                 if 'agents' in kwargs:
                     agents = kwargs['agents']
-                    max_agents = min(len(map_yaml['agents']), agents[1])
-                    agents_list = np.arange(agents[0], max_agents, dtype=int).tolist()
+                    min_agents = min(5, max_agents)
+                    agents_list = np.linspace(min_agents, max_agents, agents, dtype=int).tolist()
                 elif 'agents_list' in kwargs:
                     agents_list = kwargs['agents_list']
 
                 if 'starts' in kwargs:
                     starts = kwargs['starts']
-                    max_starts = min(len(map_yaml['map']['start_locations']), starts[1])
-                    starts_list = np.arange(starts[0], max_starts, dtype=int).tolist()
+                    min_starts = min(5, max_starts)
+                    starts_list = np.linspace(min_starts, max_starts, starts,  dtype=int).tolist()
                 elif 'starts_list' in kwargs:
                     starts_list = kwargs['starts_list']
 
                 if 'goals' in kwargs:
                     goals = kwargs['goals']
-                    max_goals = min(len(map_yaml['map']['goal_locations']), goals[1])
-                    goals_list = np.arange(goals[0], max_goals, dtype=int).tolist()
+                    min_goals = min(5, max_goals)
+                    goals_list = np.linspace(min_goals, max_goals, goals, dtype=int).tolist()
                 elif 'goals_list' in kwargs:
                     goals_list = kwargs['goals_list']
-
 
                 map_yaml['agents_num'] = agents_list
                 map_yaml['start_num'] = starts_list
@@ -90,7 +93,7 @@ def run_script(**kwargs):
 
 
 if __name__ == '__main__':
-    processes = [Process(target=run_script, kwargs=dict(agents=4), name="agents"),
+    processes = [Process(target=run_script, kwargs=dict(agents=3), name="agents"),
                  Process(target=run_script, kwargs=dict(tasks_list=[15, 30, 90]), name="tasks"),
                  Process(target=run_script, kwargs=dict(tasks_frequency_list=[0.2, 0.6, 2]), name="tasks_frequency"),
                  Process(target=run_script, kwargs=dict(starts=3), name="starts"),

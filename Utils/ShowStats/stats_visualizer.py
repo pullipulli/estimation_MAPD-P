@@ -2,6 +2,7 @@
 This module contains the StatsVisualizer class that allows to visualize the statistics of the simulations.
 author: Andrea Pullia (@pullipulli)
 """
+import os
 from collections import defaultdict
 
 import numpy as np
@@ -11,6 +12,7 @@ import math
 import seaborn as sns
 from matplotlib.axes import Axes
 
+import RootPath
 from Utils.type_checking import MapOutput, RunId, MapName
 
 TIME_METRIC_NAMES = ["costs", "serv_times", "pickup_to_goal_times", "start_to_pickup_times", "runtimes", "makespans", "earth_mover_dist"]
@@ -44,6 +46,8 @@ class StatsVisualizer:
             "goal": [],
             "td_update": td_update_num
         }
+
+        self.pixel_size = 1/plt.rcParams['figure.dpi']
 
         self.variable_param = None # At the beginning, no variable parameter is set because it is not known yet
 
@@ -127,12 +131,10 @@ class StatsVisualizer:
                 run_ids.append(map["run_id"])
         return run_ids
 
-    def show_double_bar_time_metric(self, map_name: MapName, ax: list[list[Axes]], row_number=2):
+    def show_double_bar_time_metric(self, map_name: MapName):
         """
         Show the double bar plot of the time metrics.
         :param map_name: The name of the map to show the metrics of.
-        :param ax: The axes to plot the data on
-        :param row_number: The number of rows to plot the data on
         """
         run_ids = self.get_run_ids_from_map(map_name)
 
@@ -156,14 +158,9 @@ class StatsVisualizer:
 
         config = self.stats_of(run_id=run_ids[0])[0]
 
-        rowIndex = 0
-        columnIndex = 0
-        metric_index = 0
         for metric_name in TIME_METRIC_NAMES:
+            fig, ax = plt.subplots(figsize=(500*self.pixel_size, 500*self.pixel_size))
             number_of_bars_per_group = 2
-            if metric_index == math.ceil(len(TIME_METRIC_NAMES) / row_number):
-                rowIndex += 1
-                columnIndex = 0
 
             if metric_name == "costs":
                 fixed_metric[metric_name] = [x / config["tasks"] for x in fixed_metric[metric_name]]
@@ -176,75 +173,71 @@ class StatsVisualizer:
                 number_of_bars_per_group = 1
 
             if metric_name not in ONLY_LEARNING_TIME_NAMES:
-                ax[rowIndex][columnIndex].barh(bar0, fixed_metric[metric_name], color='r', height=barWidth,
+                ax.barh(bar0, fixed_metric[metric_name], color='r', height=barWidth,
                                                edgecolor='grey', label='Fixed')
-            ax[rowIndex][columnIndex].barh(bar1, learning_metric[metric_name], color='g', height=barWidth,
+            ax.barh(bar1, learning_metric[metric_name], color='g', height=barWidth,
                                            edgecolor='grey', label='Learning')
-            for bars in ax[rowIndex][columnIndex].containers:
-                ax[rowIndex][columnIndex].bar_label(bars, label_type="center", color='w')
+            for bars in ax.containers:
+                ax.bar_label(bars, label_type="center", color='w')
 
-            ax[rowIndex][columnIndex].invert_yaxis()
+            ax.invert_yaxis()
 
             parameter_string = ""
             for param in config:
                 if param != variable_param and param != "map":
                     parameter_string += f"{param}: {config[param]},\n"
             parameter_string += '\n'
-            variable_string = f"Possible values of {variable_param}"
 
-            ax[rowIndex][columnIndex].set_title(f"Mappa: {config['map']}\n" + parameter_string,
+            variable_string = ""
+            if variable_param == "agents" or variable_param == "tasks" or variable_param == "pickup" or variable_param == "goal":
+                variable_string = f"Number of {variable_param}"
+            elif variable_param == "task_freq":
+                variable_string = f"Possible task frequencies"
+            elif variable_param == "td_update":
+                variable_string = f"Task distribution update frequency values"
+
+            ax.set_title(f"Map: {config['map']}\n" + parameter_string,
                                                 fontweight='bold', fontsize=self.fontSize, pad=self.padding)
-            ax[rowIndex][columnIndex].set_ylabel(variable_string, fontweight='bold', fontsize=self.fontSize)
-            ax[rowIndex][columnIndex].set_xlabel(TIME_METRICS[metric_name], fontweight='bold', fontsize=self.fontSize)
-            ax[rowIndex][columnIndex].set_yticks(
+            ax.set_ylabel(variable_string, fontweight='bold', fontsize=self.fontSize)
+            ax.set_xlabel(TIME_METRICS[metric_name], fontweight='bold', fontsize=self.fontSize)
+            ax.set_yticks(
                 [r + barWidth / number_of_bars_per_group for r in range(len(possible_variable_num))],
                 possible_variable_num)
             if number_of_bars_per_group > 1:
-                ax[rowIndex][columnIndex].legend()
+                ax.legend()
 
             if metric_name in OTHER_METRICS:
-                ax[rowIndex][columnIndex].set_visible(False)
+                plt.close(fig)
+                continue
 
-            metric_index += 1
-            columnIndex += 1
-        plt.tight_layout()
+            plt.tight_layout()
 
-        if self.save:
-            plt.savefig(f"plots_pngs/{self.variable_param}/{map_name}/double_bar_plots.png")
-        else:
-            plt.show()
+            plot_type_str = "double_bar_plots/"
+            variable_param_value = str(config[variable_param])
 
-    def show_metric_evolution(self, map_name: str, ax: Axes | list[Axes] | list[list[Axes]]) -> None:
+            self.save_plot(fig, map_name, metric_name, plot_type_str, variable_param_value)
+
+    def show_metric_evolution(self, map_name: MapName) -> None:
         """
         Show the evolution of some metrics.
         :param map_name: The name of the map to show the metrics of.
-        :param ax: The axes to plot the data on (if there are multiple subplots, ax is a list (or a list of lists) of
-        Axes, one for each subplot).
         """
         run_ids = self.get_run_ids_from_map(map_name)
-
-        run_index = 0
 
         for run_id in run_ids:
             config, df_fixed, df_learning = self.stats_of(run_id=run_id)[0:3]
 
-            run_ax = ax
-
-            if len(run_ids) > 1:
-                run_ax: list[Axes] = ax[run_index]
-
-            metric_index = 0
-
             for metric_name in TIME_EVOLUTION_NAMES:
+                fig, run_ax = plt.subplots(figsize=(500 * self.pixel_size, 500 * self.pixel_size))
                 fixed_metric = df_fixed[metric_name]
                 learning_metric = df_learning[metric_name]
 
                 if metric_name not in ONLY_LEARNING_TIME_NAMES:
-                    run_ax[metric_index].plot(fixed_metric, label='Fixed')
-                run_ax[metric_index].plot(learning_metric, label='Learning')
+                    run_ax.plot(fixed_metric, label='Fixed')
+                run_ax.plot(learning_metric, label='Learning')
 
                 if metric_name in MAX_TASK_TIME_NAMES:
-                    run_ax[metric_index].set_xlim(0, config["last_task_time"] + 1)
+                    run_ax.set_xlim(0, config["last_task_time"] + 1)
 
                 parameter_string = ""
                 should_new_line = False
@@ -255,34 +248,31 @@ class StatsVisualizer:
                             parameter_string += '\n'
                         should_new_line = not should_new_line
 
-                run_ax[metric_index].set_title(f"Mappa: {config["map"]}\n" + parameter_string, fontweight='bold',
+                run_ax.set_title(f"Map: {config["map"]}\n" + parameter_string, fontweight='bold',
                                                fontsize=self.fontSize, pad=self.padding)
-                run_ax[metric_index].set_xlabel("Time", fontweight='bold', fontsize=self.fontSize)
-                run_ax[metric_index].set_ylabel(TIME_METRICS[metric_name], fontweight='bold', fontsize=self.fontSize)
-                run_ax[metric_index].legend()
-                metric_index += 1
-            run_index += 1
-        plt.tight_layout()
-        if self.save:
-            plt.savefig(f"plots_pngs/{self.variable_param}/{map_name}/metric_evolutions.png")
-        else:
-            plt.show()
+                run_ax.set_xlabel("Time", fontweight='bold', fontsize=self.fontSize)
+                run_ax.set_ylabel(TIME_METRICS[metric_name], fontweight='bold', fontsize=self.fontSize)
+                if metric_name not in ONLY_LEARNING_TIME_NAMES:
+                    run_ax.legend()
+                plt.tight_layout()
 
-    def show_real_vs_estimated_avg_costs(self, map_name: MapName, ax: Axes | list[Axes]) -> None:
+                plot_type_str = "metric_evolution/"
+                variable_param_value = str(config[self.variable_param])
+
+                self.save_plot(fig, map_name, metric_name, plot_type_str, variable_param_value)
+
+    def show_real_vs_estimated_avg_costs(self, map_name: MapName) -> None:
         """
         Show the average real and estimated costs.
         :param map_name: The name of the map to show and compare the estimated and real costs of.
-        :param ax: The axes to plot the data on (if there are multiple subplots, ax is a list of Axes, one for each subplot).
         """
         run_ids = self.get_run_ids_from_map(map_name)
 
         barWidth = 0.25
 
-        i = 0
-        currentAx = ax
         for run_id in run_ids:
-            if len(run_ids) > 1:
-                currentAx: Axes = ax[i]
+            fig, currentAx = plt.subplots(figsize=(500*self.pixel_size, 500*self.pixel_size))
+
             config, _, _, df_fixed_costs, df_learning_costs, _, _ = self.stats_of(run_id=run_id)
             fixed_estimated_avg = np.mean(df_fixed_costs["estimated"])
             learning_estimated_avg = np.mean(df_learning_costs["estimated"])
@@ -309,19 +299,18 @@ class StatsVisualizer:
                     parameter_string += f"{param}: {config[param]}, "
                     should_new_line = not should_new_line
 
-            currentAx.set_title(f"Mappa: {config["map"]}\n" + parameter_string, fontweight='bold',
+            currentAx.set_title(f"Map: {config["map"]}\n" + parameter_string, fontweight='bold',
                                 fontsize=self.fontSize, pad=self.padding)
             currentAx.set_ylabel("Average Cost", fontweight='bold', fontsize=self.fontSize)
             currentAx.set_xticks([r + barWidth / 2 for r in range(2)],
                                  ["Estimated", "Real"])
             currentAx.legend()
-            i += 1
-        plt.tight_layout()
+            plt.tight_layout()
 
-        if self.save:
-            plt.savefig(f"plots_pngs/{self.variable_param}/{map_name}/real_vs_estimated_avg_costs.png")
-        else:
-            plt.show()
+            plot_type_str = "real_vs_estimated_avg_costs/"
+            variable_param_value = str(config[self.variable_param])
+
+            self.save_plot(fig, map_name, "", plot_type_str, variable_param_value)
 
     def show_traffic_evolution(self, map_name: MapName) -> None:
         """
@@ -332,9 +321,28 @@ class StatsVisualizer:
 
         for run_id in run_ids:
             config, _, _, _, _, traffic_fixed, traffic_learning = self.stats_of(run_id=run_id)
-            fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(14, 7))
-            ax: list[Axes] = ax
-            fig: plt.Figure = fig
+            fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(1000*self.pixel_size, 800*self.pixel_size))
+
+            min_fixed, max_fixed = math.inf, -math.inf
+
+            for i in range(len(traffic_fixed)):
+                for j in range(len(traffic_fixed[i])):
+                    if traffic_fixed[i][j] < min_fixed:
+                        min_fixed = traffic_fixed[i][j]
+                    if traffic_fixed[i][j] > max_fixed:
+                        max_fixed = traffic_fixed[i][j]
+
+            min_learning, max_learning = math.inf, -math.inf
+
+            for i in range(len(traffic_learning)):
+                for j in range(len(traffic_learning[i])):
+                    if traffic_learning[i][j] < min_learning:
+                        min_learning = traffic_learning[i][j]
+                    if traffic_learning[i][j] > max_learning:
+                        max_learning = traffic_learning[i][j]
+
+            max_traffic = max(max_fixed, max_learning)
+            min_traffic = min(min_fixed, min_learning)
 
             max_distance_fixed = max(len(dist_list) for dist_list in traffic_fixed)
             max_distance_learning = max(len(dist_list) for dist_list in traffic_learning)
@@ -342,7 +350,7 @@ class StatsVisualizer:
             xticks_fixed = range(1, max_distance_fixed + 1)
             xticks_learning = range(1, max_distance_learning + 1)
 
-            sns.heatmap(traffic_fixed, cmap='YlOrRd', ax=ax[0])
+            sns.heatmap(traffic_fixed, cmap='YlOrRd', ax=ax[0], vmin=min_traffic, vmax=max_traffic)
             xticks_fixed_locations = ax[0].get_xticks()
             ax[0].set_xticks(xticks_fixed_locations, labels=xticks_fixed)
             ax[0].invert_yaxis()
@@ -350,7 +358,7 @@ class StatsVisualizer:
             ax[0].set_xlabel('Distance')
             ax[0].set_ylabel('Time')
 
-            sns.heatmap(traffic_learning, cmap='YlOrRd', ax=ax[1])
+            sns.heatmap(traffic_learning, cmap='YlOrRd', ax=ax[1], vmin=min_traffic, vmax=max_traffic)
             xticks_learning_locations = ax[1].get_xticks()
             ax[1].set_xticks(xticks_learning_locations, labels=xticks_learning)
             ax[1].invert_yaxis()
@@ -361,27 +369,34 @@ class StatsVisualizer:
             parameter_string = ""
             for param in config:
                 if param != "map":
-                    parameter_string += f"{param}: {config[param]}, "
+                    parameter_string += f"{param}: {config[param]},\n"
 
-            fig.suptitle(f"Traffic:\nMappa: {config["map"]}\n" + parameter_string, fontweight='bold',
+            fig.suptitle(f"Traffic:\nMap: {config["map"]}\n" + parameter_string, fontweight='bold',
                          fontsize=self.fontSize)
 
             plt.tight_layout()
-            if self.save:
-                plt.savefig(f"plots_pngs/{self.variable_param}/{map_name}/traffic_evolution_{config[self.variable_param]}.png")
-                plt.close(fig)
-            else:
-                plt.show()
+
+            plot_type_str = "traffic_evolution/"
+            variable_param_value = str(config[self.variable_param])
+
+            self.save_plot(fig, map_name, "", plot_type_str, variable_param_value)
+
+    def save_plot(self, fig, map_name, metric_name, plot_type_str, variable_param_value):
+        results_dir = os.path.join(RootPath.get_root(), 'Utils', 'ShowStats', 'plots_pdfs', self.variable_param,
+                                   map_name, plot_type_str)
+        if not os.path.isdir(results_dir):
+            os.makedirs(results_dir)
+        if self.save:
+            plt.savefig(results_dir + "_" + metric_name + "_" + variable_param_value + ".pdf")
+            plt.close(fig)
+        else:
+            plt.show()
 
     def show_all_metrics(self) -> None:
         """
         Show all the metrics of the simulation.
         :param map_name: The name of the map to show the metrics of.
         """
-
-        width_coefficient = 7
-        height_coefficient = 7
-        double_bar_rows = 2
 
         showed_run_ids = set()
 
@@ -397,26 +412,11 @@ class StatsVisualizer:
             self.params["agents"] = my_map["agents_num"]
             self.params["pickup"] = my_map["start_num"]
             self.params["goal"] = my_map["goal_num"]
-
             self.check_for_variable_param()
 
-            fig, ax = plt.subplots(nrows=double_bar_rows, ncols=math.ceil(len(TIME_METRIC_NAMES) / double_bar_rows),
-                                   figsize=(width_coefficient * math.ceil(len(TIME_METRIC_NAMES) / double_bar_rows),
-                                            height_coefficient * double_bar_rows))
-            ax[-1][-1].axis('off')
-            self.show_double_bar_time_metric(map_name, ax, row_number=double_bar_rows)
-            plt.close(fig)
-
-            fig, ax = plt.subplots(nrows=len(run_ids), ncols=len(TIME_EVOLUTION_NAMES), figsize=(
-                width_coefficient * len(TIME_EVOLUTION_NAMES), height_coefficient * len(run_ids)))
-            self.show_metric_evolution(map_name, ax)
-            plt.close(fig)
-
-            fig, ax = plt.subplots(nrows=1, ncols=len(run_ids),
-                                   figsize=(width_coefficient * len(run_ids), height_coefficient))
-            self.show_real_vs_estimated_avg_costs(map_name, ax)
-            plt.close(fig)
-
+            self.show_double_bar_time_metric(map_name)
+            self.show_metric_evolution(map_name)
+            self.show_real_vs_estimated_avg_costs(map_name)
             self.show_traffic_evolution(map_name)
 
             showed_run_ids.update(run_ids)

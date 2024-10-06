@@ -14,6 +14,7 @@ from matplotlib.patches import Circle, Rectangle, Patch
 import matplotlib.pyplot as plt
 import os
 
+from matplotlib.pyplot import legend
 from matplotlib_inline.backend_inline import set_matplotlib_formats
 
 import RootPath
@@ -66,11 +67,6 @@ def showMap(map, map_name="map", legend=True):
                 Rectangle((s[0] - 0.5, s[1] - 0.5), 1, 1, facecolor='orange',
                           edgecolor='black',
                           alpha=0.5))
-            if not legend:
-                startGoalText = ax.text(s[0], s[1], "B")
-                startGoalText.set_horizontalalignment('center')
-                startGoalText.set_verticalalignment('center')
-                artists.append(startGoalText)
 
             map["goal_locations"].remove(s)
         else:
@@ -78,22 +74,12 @@ def showMap(map, map_name="map", legend=True):
                 Rectangle((s[0] - 0.5, s[1] - 0.5), 1, 1, facecolor='blue',
                           edgecolor='black',
                           alpha=0.5))
-            if not legend:
-                startText = ax.text(s[0], s[1], "S")
-                startText.set_horizontalalignment('center')
-                startText.set_verticalalignment('center')
-                artists.append(startText)
     
     for g in map["goal_locations"]:
         patches.append(
             Rectangle((g[0] - 0.5, g[1] - 0.5), 1, 1, facecolor='red',
                       edgecolor='black',
                       alpha=0.5))
-        if not legend:
-            goalText = ax.text(g[0], g[1], "G")
-            goalText.set_horizontalalignment('center')
-            goalText.set_verticalalignment('center')
-            artists.append(goalText)
 
     for p in patches:
         ax.add_patch(p)
@@ -121,7 +107,7 @@ def show_maps():
                     map = yaml.load(map_file, Loader=yaml.FullLoader)
                 except yaml.YAMLError as exc:
                     print(exc)
-            showMap(map, map_name, legend=True)
+            showMap(map, map_name, legend=False)
 
 
 if __name__ == '__main__':
@@ -145,4 +131,4 @@ if __name__ == '__main__':
         except yaml.YAMLError as exc:
             print(exc)
 
-    showMap(map, map_name, legend=True)
+    showMap(map, map_name, legend=False)
