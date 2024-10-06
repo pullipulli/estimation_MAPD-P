@@ -17,7 +17,7 @@ from Utils.type_checking import MapOutput, RunId, MapName
 
 TIME_METRIC_NAMES = ["costs", "serv_times", "pickup_to_goal_times", "start_to_pickup_times", "runtimes", "makespans", "earth_mover_dist"]
 OTHER_METRICS = ["earth_mover_dist"]
-TIME_METRIC_LABELS = ["Costs per Task", "Service Times", "Pickup to Goal Times", "Start to Pickup Times", "Runtimes",
+TIME_METRIC_LABELS = ["Costs per Task", "Service Times [s]", "Pickup to Goal Times [s]", "Start to Pickup Times[s]", "Runtimes [s]",
                       "Makespans", "Earth Mover Distance"]
 MAX_TASK_TIME_NAMES = ["earth_mover_dist"]
 ONLY_LEARNING_TIME_NAMES = ["earth_mover_dist"]
