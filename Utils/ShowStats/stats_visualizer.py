@@ -174,9 +174,9 @@ class StatsVisualizer:
 
             if metric_name not in ONLY_LEARNING_TIME_NAMES:
                 ax.barh(bar0, fixed_metric[metric_name], color='r', height=barWidth,
-                                               edgecolor='grey', label='Fixed')
+                                               edgecolor='grey', label='TP-mp')
             ax.barh(bar1, learning_metric[metric_name], color='g', height=barWidth,
-                                           edgecolor='grey', label='Learning')
+                                           edgecolor='grey', label='TP-mp\nwith Estimation')
             for bars in ax.containers:
                 ax.bar_label(bars, label_type="center", color='w')
 
@@ -233,8 +233,8 @@ class StatsVisualizer:
                 learning_metric = df_learning[metric_name]
 
                 if metric_name not in ONLY_LEARNING_TIME_NAMES:
-                    run_ax.plot(fixed_metric, label='Fixed')
-                run_ax.plot(learning_metric, label='Learning')
+                    run_ax.plot(fixed_metric, label='TP-mp')
+                run_ax.plot(learning_metric, label='TP-mp\nwith Estimation')
 
                 if metric_name in MAX_TASK_TIME_NAMES:
                     run_ax.set_xlim(0, config["last_task_time"] + 1)
@@ -283,9 +283,9 @@ class StatsVisualizer:
             bar1 = [x + barWidth for x in bar0]  # learning estimated/real
 
             currentAx.bar(bar0, [fixed_estimated_avg, fixed_real_avg], color='r', width=barWidth,
-                          edgecolor='grey', label='Fixed')
+                          edgecolor='grey', label='TP-mp')
             currentAx.bar(bar1, [learning_estimated_avg, learning_real_avg], color='g', width=barWidth,
-                          edgecolor='grey', label='Learning')
+                          edgecolor='grey', label='TP-mp\nwith Estimation')
 
             for bars in currentAx.containers:
                 currentAx.bar_label(bars, rotation="vertical", label_type="center", color='w')
@@ -354,7 +354,7 @@ class StatsVisualizer:
             xticks_fixed_locations = ax[0].get_xticks()
             ax[0].set_xticks(xticks_fixed_locations, labels=xticks_fixed)
             ax[0].invert_yaxis()
-            ax[0].set_title("Fixed")
+            ax[0].set_title("TP-mp")
             ax[0].set_xlabel('Distance')
             ax[0].set_ylabel('Time')
 
@@ -362,7 +362,7 @@ class StatsVisualizer:
             xticks_learning_locations = ax[1].get_xticks()
             ax[1].set_xticks(xticks_learning_locations, labels=xticks_learning)
             ax[1].invert_yaxis()
-            ax[1].set_title("Learning")
+            ax[1].set_title("TP-mp\nwith Estimation")
             ax[1].set_xlabel('Distance')
             ax[1].set_ylabel('Time')
 
